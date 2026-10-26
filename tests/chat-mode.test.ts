@@ -28,4 +28,18 @@ describe("chat bet deadlines", () => {
     expect(ledger.currentBet?.status).toBe("refunded");
     expect(messages.at(-1)).toContain("Refunded:");
   });
+
+  it("does not count a delayed duplicate bet message after a new bet opens", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-chat-dedup-"));
+    directories.push(directory);
+    const ledger = await ChatBetLedger.open(join(directory, "channel.json"));
+    const service = new ChatBetService(ledger, async () => {}, new OverlayServer());
+
+    await service.handleBetMessage("same-message", "viewer", "!1 100", 1000);
+    await service.openBet({ question: "Next boss?", outcomes: ["Down", "Survives"], window_seconds: 30, reason: "The fight is starting." }, 2000);
+    await service.handleBetMessage("same-message", "viewer", "!1 100", 3000);
+
+    expect(ledger.currentBet?.stakes).toEqual({});
+    expect(ledger.balance("viewer")).toBe(1000);
+  });
 });

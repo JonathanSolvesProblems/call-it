@@ -99,8 +99,8 @@ export class ChatBetLedger {
     return bet;
   }
 
-  async placeStake(messageId: string, userId: string, command: BetCommand, nowMs = Date.now()): Promise<PlaceStakeResult> {
-    if (this.hasSeenMessage(messageId)) return { accepted: false, reason: "duplicate message" };
+  async placeStake(messageId: string, userId: string, command: BetCommand, nowMs = Date.now(), messageAlreadyMarked = false): Promise<PlaceStakeResult> {
+    if (!messageAlreadyMarked && !this.markMessageSeen(messageId)) return { accepted: false, reason: "duplicate message" };
     const bet = this.getActiveBet();
     if (!bet || bet.status !== "open" || nowMs >= bet.expiresAtMs) return { accepted: false, reason: "no open bet" };
     const existing = bet.stakes[userId];
@@ -173,10 +173,10 @@ export class ChatBetLedger {
     };
   }
 
-  private hasSeenMessage(messageId: string): boolean {
-    if (this.seenMessageIds.has(messageId)) return true;
+  markMessageSeen(messageId: string): boolean {
+    if (this.seenMessageIds.has(messageId)) return false;
     this.seenMessageIds.add(messageId);
-    return false;
+    return true;
   }
 
   private async save(): Promise<void> {

@@ -45,11 +45,12 @@ export class ChatBetService {
   }
 
   async handleBetMessage(messageId: string, userId: string, text: string, nowMs = Date.now()): Promise<void> {
-    const bet = this.ledger.getActiveBet();
-    if (!bet || this.paused || this.adBreak) return;
-    const command = parseBetCommand(text, bet.outcomes.length);
+    const command = parseBetCommand(text, 10);
     if (!command) return;
-    const result = await this.ledger.placeStake(messageId, userId, command, nowMs);
+    if (!this.ledger.markMessageSeen(messageId)) return;
+    const bet = this.ledger.getActiveBet();
+    if (!bet || this.paused || this.adBreak || command.outcomeIndex >= bet.outcomes.length) return;
+    const result = await this.ledger.placeStake(messageId, userId, command, nowMs, true);
     if (result.accepted) this.overlay.update({ bet: this.ledger.overlayBet(nowMs) });
   }
 
