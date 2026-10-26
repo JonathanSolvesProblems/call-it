@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 export const TWITCH_SCOPES = [
   "user:read:chat",
   "user:write:chat",
@@ -22,5 +24,4 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return { twitchClientId, tokenPath: join(process.cwd(), "data", "token.json") };
 }
-import { join } from "node:path";
 

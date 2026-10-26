@@ -15,7 +15,7 @@ export type EventSubMessage =
   | { type: "keepalive" }
   | { type: "reconnect"; url: string }
   | { type: "revocation"; subscriptionType: string; status: string }
-  | { type: "notification"; subscriptionType: string; event: Record<string, unknown> }
+  | { type: "notification"; messageId?: string; subscriptionType: string; event: Record<string, unknown> }
   | { type: "unknown" };
 
 export function parseEventSubMessage(raw: string | Buffer): EventSubMessage {
@@ -28,7 +28,12 @@ export function parseEventSubMessage(raw: string | Buffer): EventSubMessage {
     case "session_keepalive": return { type: "keepalive" };
     case "session_reconnect": return { type: "reconnect", url: payload.payload.session.reconnect_url };
     case "revocation": return { type: "revocation", subscriptionType: payload.payload.subscription.type, status: payload.payload.subscription.status };
-    case "notification": return { type: "notification", subscriptionType: payload.payload.subscription.type, event: payload.payload.event };
+    case "notification": return {
+      type: "notification",
+      ...(typeof payload?.metadata?.message_id === "string" ? { messageId: payload.metadata.message_id } : {}),
+      subscriptionType: payload.payload.subscription.type,
+      event: payload.payload.event,
+    };
     default: return { type: "unknown" };
   }
 }
@@ -38,6 +43,26 @@ export interface EventSubHandlers {
   onStreamOnline(): Promise<void> | void;
   onStreamOffline(): Promise<void> | void;
   onAdBreak(): Promise<void> | void;
+}
+
+export class NotificationDeduper {
+  private readonly ids = new Set<string>();
+  private readonly orderedIds: string[] = [];
+
+  constructor(private readonly capacity = 1000) {
+    if (!Number.isInteger(capacity) || capacity < 1) throw new Error("Notification dedupe capacity must be a positive integer.");
+  }
+
+  hasSeen(messageId: string): boolean {
+    if (this.ids.has(messageId)) return true;
+    this.ids.add(messageId);
+    this.orderedIds.push(messageId);
+    if (this.orderedIds.length > this.capacity) {
+      const oldest = this.orderedIds.shift();
+      if (oldest !== undefined) this.ids.delete(oldest);
+    }
+    return false;
+  }
 }
 
 const SUBSCRIPTIONS = [
@@ -50,7 +75,8 @@ const SUBSCRIPTIONS = [
 export class EventSubClient {
   private stopped = false;
   private socket?: WebSocket;
-  private heartbeat?: ReturnType<typeof setTimeout>;
+  private readonly heartbeats = new Map<WebSocket, ReturnType<typeof setTimeout>>();
+  private readonly notificationIds = new NotificationDeduper();
 
   constructor(
     private readonly helix: HelixClient,
@@ -66,7 +92,8 @@ export class EventSubClient {
 
   stop(): void {
     this.stopped = true;
-    if (this.heartbeat) clearTimeout(this.heartbeat);
+    for (const heartbeat of this.heartbeats.values()) clearTimeout(heartbeat);
+    this.heartbeats.clear();
     this.socket?.close();
   }
 
@@ -75,28 +102,30 @@ export class EventSubClient {
     this.socket = socket;
     await new Promise<void>((resolve, reject) => {
       let welcomed = false;
+      let keepaliveSeconds = 10;
       socket.on("message", (data) => {
         const message = parseEventSubMessage(data as Buffer);
+        if (message.type === "welcome") keepaliveSeconds = message.keepaliveSeconds;
+        this.armHeartbeat(socket, keepaliveSeconds);
         if (message.type === "welcome") {
           welcomed = true;
           if (!reconnecting) {
             void this.subscribe(message.sessionId).then(resolve, reject);
           } else resolve();
-          this.armHeartbeat(message.keepaliveSeconds);
-        } else if (message.type === "keepalive") {
-          if (this.heartbeat) clearTimeout(this.heartbeat);
-          this.armHeartbeat(10);
         } else if (message.type === "reconnect") {
           void this.connect(message.url, true).then(() => socket.close(1000, "reconnected"));
         } else if (message.type === "revocation") {
           console.error(`EventSub subscription revoked: ${message.subscriptionType} (${message.status})`);
         } else if (message.type === "notification") {
+          if (message.messageId && this.notificationIds.hasSeen(message.messageId)) return;
           void this.dispatch(message.subscriptionType, message.event).catch((error: unknown) => console.error("EventSub handler failed", error));
         }
       });
       socket.on("error", (error) => { if (!welcomed) reject(error); else console.error("EventSub socket error", error); });
       socket.on("close", (code, reason) => {
-        if (this.heartbeat) clearTimeout(this.heartbeat);
+        const heartbeat = this.heartbeats.get(socket);
+        if (heartbeat) clearTimeout(heartbeat);
+        this.heartbeats.delete(socket);
         if (!welcomed) reject(new Error(`EventSub closed before welcome (${code}): ${reason.toString()}`));
         if (!this.stopped && this.socket === socket) {
           console.warn("EventSub disconnected. Reconnecting in 2 seconds.");
@@ -117,17 +146,23 @@ export class EventSubClient {
   }
 
   private async dispatch(type: string, event: Record<string, unknown>): Promise<void> {
-    if (type === "channel.chat.message") await this.handlers.onChatMessage(event as unknown as ChatMessageEvent);
+    if (type === "channel.chat.message") {
+      const chatMessage = event as unknown as ChatMessageEvent;
+      if (chatMessage.chatter_user_id === this.userId) return;
+      await this.handlers.onChatMessage(chatMessage);
+    }
     if (type === "stream.online") await this.handlers.onStreamOnline();
     if (type === "stream.offline") await this.handlers.onStreamOffline();
     if (type === "channel.ad_break.begin") await this.handlers.onAdBreak();
   }
 
-  private armHeartbeat(seconds: number): void {
-    if (this.heartbeat) clearTimeout(this.heartbeat);
-    this.heartbeat = setTimeout(() => {
+  private armHeartbeat(socket: WebSocket, seconds: number): void {
+    const previous = this.heartbeats.get(socket);
+    if (previous) clearTimeout(previous);
+    const heartbeat = setTimeout(() => {
       console.error("EventSub keepalive timeout. Closing socket for reconnect.");
-      this.socket?.terminate();
+      socket.terminate();
     }, (seconds + 5) * 1000);
+    this.heartbeats.set(socket, heartbeat);
   }
 }
