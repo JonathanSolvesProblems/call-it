@@ -10,7 +10,8 @@
     "live": "node --env-file-if-exists=.env --import tsx src/cli.ts live",
     "replay": "node --env-file-if-exists=.env --import tsx src/cli.ts replay",
     "frames:test": "node --env-file-if-exists=.env --import tsx src/frames/test.ts",
-    "overlay:demo": "node --env-file-if-exists=.env --import tsx src/overlay/demo.ts"
+    "overlay:demo": "node --env-file-if-exists=.env --import tsx src/overlay/demo.ts",
+    "agent:once": "node --env-file-if-exists=.env --import tsx src/agent/once.ts"
   },
   "dependencies": {
     "obs-websocket-js": "^5.0.6",

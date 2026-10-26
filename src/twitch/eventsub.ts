@@ -2,9 +2,11 @@ import WebSocket from "ws";
 import { HelixClient } from "./helix.js";
 
 export interface ChatMessageEvent {
+  message_id: string;
   broadcaster_user_id: string;
   chatter_user_id: string;
   chatter_user_login: string;
+  chatter_user_name: string;
   message: { text: string };
   badges: Array<{ set_id: string; id: string }>;
   broadcaster_user_login: string;
@@ -42,7 +44,7 @@ export interface EventSubHandlers {
   onChatMessage(event: ChatMessageEvent): Promise<void> | void;
   onStreamOnline(): Promise<void> | void;
   onStreamOffline(): Promise<void> | void;
-  onAdBreak(): Promise<void> | void;
+  onAdBreak(event: Record<string, unknown>): Promise<void> | void;
 }
 
 export class NotificationDeduper {
@@ -185,7 +187,7 @@ export class EventSubClient {
     }
     if (type === "stream.online") await this.handlers.onStreamOnline();
     if (type === "stream.offline") await this.handlers.onStreamOffline();
-    if (type === "channel.ad_break.begin") await this.handlers.onAdBreak();
+    if (type === "channel.ad_break.begin") await this.handlers.onAdBreak(event);
   }
 
   private armHeartbeat(socket: WebSocket, seconds: number): void {
