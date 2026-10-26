@@ -1,0 +1,72 @@
+import type { TwitchAuth, TwitchToken } from "./auth.js";
+
+export interface TwitchUser {
+  id: string;
+  login: string;
+  display_name: string;
+  broadcaster_type: "" | "affiliate" | "partner";
+}
+
+export interface TwitchStream {
+  id: string;
+  user_id: string;
+  type: string;
+}
+
+export class HelixClient {
+  private token?: TwitchToken;
+
+  constructor(private readonly clientId: string, private readonly auth: TwitchAuth) {}
+
+  async getUsers(login?: string): Promise<TwitchUser[]> {
+    const query = login ? `?login=${encodeURIComponent(login)}` : "";
+    return (await this.request<{ data: TwitchUser[] }>(`/users${query}`)).data;
+  }
+
+  async getStreams(userId: string): Promise<TwitchStream[]> {
+    return (await this.request<{ data: TwitchStream[] }>(`/streams?user_id=${encodeURIComponent(userId)}`)).data;
+  }
+
+  async sendChatMessage(broadcasterId: string, senderId: string, message: string): Promise<void> {
+    // Requires user:write:chat. Twitch accepts the broadcaster and sending user IDs.
+    await this.request("/chat/messages", {
+      method: "POST",
+      body: JSON.stringify({ broadcaster_id: broadcasterId, sender_id: senderId, message }),
+    });
+  }
+
+  async createEventSubSubscription(type: string, condition: Record<string, string>, sessionId: string): Promise<void> {
+    await this.request("/eventsub/subscriptions", {
+      method: "POST",
+      body: JSON.stringify({
+        type,
+        version: "1",
+        condition,
+        transport: { method: "websocket", session_id: sessionId },
+      }),
+    });
+  }
+
+  private async request<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+    this.token ??= await this.auth.getToken();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch(`https://api.twitch.tv/helix${path}`, {
+        ...init,
+        headers: {
+          "Client-Id": this.clientId,
+          Authorization: `Bearer ${this.token.access_token}`,
+          "Content-Type": "application/json",
+          ...init.headers,
+        },
+      });
+      if (response.status === 401 && attempt === 0) {
+        this.token = await this.auth.refresh(this.token.refresh_token);
+        continue;
+      }
+      if (!response.ok) throw new Error(`Twitch Helix ${path} failed (${response.status}): ${await response.text()}`);
+      if (response.status === 204) return undefined as T;
+      return await response.json() as T;
+    }
+    throw new Error(`Twitch Helix ${path} failed after token refresh`);
+  }
+}

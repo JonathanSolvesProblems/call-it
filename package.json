@@ -1,0 +1,25 @@
+{
+  "name": "call-it",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "live": "node --env-file-if-exists=.env --import tsx src/cli.ts live",
+    "replay": "node --env-file-if-exists=.env --import tsx src/cli.ts replay"
+  },
+  "dependencies": {
+    "obs-websocket-js": "^5.0.6",
+    "openai": "^5.12.2",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
