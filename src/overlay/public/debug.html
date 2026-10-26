@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call It · Debug</title>
+  <style>
+    :root { color-scheme:dark; --lime:#d8ff4f; --muted:#a0a699; --curve:cubic-bezier(.22,.84,.22,1); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:#111412; color:#f2f4ec; font-family:system-ui,"Segoe UI",sans-serif; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:26px 34px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .wordmark { color:var(--lime); font:800 13px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.18em; }
+    #demo { display:none; padding:8px 12px; border:1px solid rgba(216,255,79,.35); border-radius:99px; color:var(--lime); font:700 11px/1 ui-monospace,monospace; letter-spacing:.12em; }
+    main { display:grid; grid-template-columns:minmax(480px,1.3fr) minmax(360px,.7fr); gap:28px; padding:34px; }
+    .panel { min-width:0; padding:7px; border:1px solid rgba(255,255,255,.11); border-radius:23px; background:rgba(255,255,255,.045); }
+    .inner { height:100%; min-height:360px; padding:22px; border:1px solid rgba(255,255,255,.07); border-radius:17px; background:#171b18; }
+    h1 { margin:0 0 20px; font-size:20px; letter-spacing:-.025em; }
+    #frame { display:grid; min-height:280px; place-items:center; overflow:hidden; border-radius:12px; background:#0d100e; color:var(--muted); }
+    #frame img { display:block; max-width:100%; max-height:70vh; object-fit:contain; }
+    .meta { margin-top:14px; color:var(--muted); font:12px ui-monospace,monospace; }
+    #decisions { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+    #decisions li { padding:14px 15px; border-left:2px solid rgba(216,255,79,.7); border-radius:0 10px 10px 0; background:rgba(255,255,255,.035); }
+    time { display:block; margin-bottom:6px; color:#899184; font:11px ui-monospace,monospace; }
+    .reason { line-height:1.4; }
+    @media(max-width:850px) { main { grid-template-columns:1fr; padding:20px; } header { padding:20px; } }
+  </style>
+</head>
+<body>
+  <header><div class="wordmark">CALL IT <span style="color:#f2f4ec">/ DEBUG</span></div><div id="demo">DEMO DATA</div></header>
+  <main>
+    <section class="panel"><div class="inner"><h1>Latest frame</h1><div id="frame">Waiting for a frame…</div><div id="frameMeta" class="meta"></div></div></section>
+    <section class="panel"><div class="inner"><h1>Recent decisions</h1><ol id="decisions"><li class="reason">No decisions yet.</li></ol></div></section>
+  </main>
+  <script>
+    const frame = document.querySelector('#frame');
+    function render(state) {
+      document.querySelector('#demo').style.display = state.demoData ? 'block' : 'none';
+      if (state.latestFrameJpegBase64) {
+        let img = frame.querySelector('img');
+        if (!img) { frame.replaceChildren(); img = document.createElement('img'); frame.append(img); }
+        img.src = 'data:image/jpeg;base64,' + state.latestFrameJpegBase64;
+        document.querySelector('#frameMeta').textContent = 'JPEG thumbnail · live frame';
+      } else if (!frame.querySelector('img')) {
+        frame.textContent = 'Waiting for a frame…';
+        document.querySelector('#frameMeta').textContent = '';
+      }
+      const items = (state.decisions || []).slice(-10).reverse().map(decision => {
+        const item = document.createElement('li');
+        const stamp = document.createElement('time'); stamp.textContent = new Date(decision.timestampMs).toLocaleTimeString();
+        const reason = document.createElement('div'); reason.className = 'reason'; reason.textContent = decision.reason;
+        item.append(stamp, reason); return item;
+      });
+      document.querySelector('#decisions').replaceChildren(...(items.length ? items : [Object.assign(document.createElement('li'), { className:'reason', textContent:'No decisions yet.' })]));
+    }
+    function connect() {
+      const socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+      socket.onmessage = event => { try { render(JSON.parse(event.data)); } catch (error) { console.error(error); } };
+      socket.onclose = () => setTimeout(connect, 1500);
+    }
+    connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call It Overlay</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --acid: #d8ff4f;
+      --ink: #f4f5ec;
+      --muted: #a4a99c;
+      --plate: rgba(10, 13, 12, .90);
+      --edge: rgba(235, 242, 217, .14);
+      --spring: cubic-bezier(.22, .84, .22, 1);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: transparent; }
+    body { color: var(--ink); font-family: system-ui, "Segoe UI", sans-serif; }
+    #demoBadge {
+      position: absolute; top: 48px; right: 64px; display: none; align-items: center; gap: 10px;
+      padding: 10px 15px; border: 1px solid rgba(216,255,79,.45); border-radius: 999px;
+      background: rgba(10,13,12,.9); color: var(--acid); font: 750 13px/1 system-ui,sans-serif;
+      letter-spacing: .17em; text-transform: uppercase;
+    }
+    #demoBadge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 12px rgba(216,255,79,.8); }
+    #canvas { position: absolute; inset: 0; }
+    #card {
+      position: absolute; left: 72px; bottom: 76px; width: 650px; opacity: 0;
+      transform: translate3d(-52px, 0, 0) scale(.985); transform-origin: left bottom;
+      transition: transform 700ms var(--spring), opacity 440ms var(--spring); pointer-events: none;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,.22));
+    }
+    #card.visible { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+    .shell { padding: 6px; border: 1px solid rgba(242,247,230,.21); border-radius: 28px; background: rgba(242,247,230,.08); }
+    .core {
+      overflow: hidden; position: relative; padding: 27px 29px 26px; border: 1px solid var(--edge);
+      border-radius: 22px; background: var(--plate); box-shadow: inset 0 1px rgba(255,255,255,.11);
+    }
+    .topline { display:flex; justify-content:space-between; align-items:center; margin-bottom: 19px; }
+    .brand, .liveState, .meta, .resultEyebrow { font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; }
+    .brand { color:var(--acid); font-size:13px; font-weight:800; letter-spacing:.19em; }
+    .brand mark { color:var(--ink); background:transparent; margin-left:8px; }
+    .liveState { display:flex; align-items:center; gap:8px; color:#d4d9cb; font-size:11px; letter-spacing:.1em; }
+    .liveState::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--acid); box-shadow:0 0 9px rgba(216,255,79,.7); }
+    .liveState.locked::before { background:#ffc45b; box-shadow:0 0 9px rgba(255,196,91,.7); }
+    .question { max-width: 570px; margin:0 0 22px; font-size:34px; line-height:1.12; font-weight:780; letter-spacing:-.035em; text-wrap:balance; }
+    .outcomes { display:grid; gap:11px; }
+    .outcome { position:relative; display:grid; grid-template-columns:1fr auto; align-items:center; gap:2px 16px; min-height:68px; padding:12px 16px 13px; overflow:hidden; border-radius:13px; background:rgba(255,255,255,.045); }
+    .outcome::after { content:""; position:absolute; inset:0; border:1px solid rgba(255,255,255,.055); border-radius:inherit; pointer-events:none; }
+    .outcome.winner { background:rgba(216,255,79,.12); }
+    .outcomeName { font-size:19px; line-height:1.1; font-weight:700; }
+    .outcomeStats { color:#d4d9cb; text-align:right; font-size:14px; font-variant-numeric:tabular-nums; }
+    .outcomeStats strong { color:#fff; font-size:17px; }
+    .barTrack { grid-column:1 / -1; height:4px; margin-top:8px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.10); }
+    .barFill { width:100%; height:100%; border-radius:inherit; background:var(--acid); transform:scaleX(var(--progress,0)); transform-origin:left center; transition:transform 680ms var(--spring); }
+    .winner .barFill { background:#e7ff89; }
+    .foot { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:19px; }
+    .decision { overflow:hidden; color:var(--muted); font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+    .timer { flex:none; color:var(--acid); font:800 14px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.04em; }
+    .timer.locked { color:#ffc45b; }
+    #result {
+      position:absolute; inset:0; display:grid; place-content:center; padding:24px; text-align:center;
+      background:rgba(8,11,10,.94); opacity:0; transform:rotateX(-88deg) translateY(16px);
+      transform-origin:top center; transition:transform 750ms var(--spring), opacity 320ms var(--spring); pointer-events:none;
+    }
+    #result.shown { opacity:1; transform:rotateX(0) translateY(0); }
+    .resultEyebrow { margin-bottom:9px; color:var(--acid); font-size:12px; letter-spacing:.2em; }
+    #result.refunded .resultEyebrow { color:#ffc45b; }
+    #resultTitle { font-size:34px; font-weight:850; letter-spacing:-.035em; }
+    #resultSub { margin-top:8px; color:#b5bbae; font-size:14px; }
+    #paused {
+      display:none; position:absolute; left:72px; bottom:38px; color:#fff; font:700 11px/1 ui-monospace,monospace;
+      letter-spacing:.14em; text-transform:uppercase;
+    }
+    #paused.show { display:block; }
+    #paused span { margin-right:14px; color:#ffc45b; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration:1ms !important; animation-duration:1ms !important; } }
+  </style>
+</head>
+<body>
+  <div id="canvas">
+    <div id="demoBadge">Demo data</div>
+    <section id="card" aria-live="polite" aria-label="Current chat prediction">
+      <div class="shell"><div class="core">
+        <div class="topline"><div class="brand">CALL IT <mark>· PREDICTION</mark></div><div id="liveState" class="liveState">OPEN</div></div>
+        <h1 id="question" class="question"></h1>
+        <div id="outcomes" class="outcomes"></div>
+        <div class="foot"><div id="decision" class="decision"></div><div id="timer" class="timer"></div></div>
+        <div id="result"><div id="resultEyebrow" class="resultEyebrow">WINNER</div><div id="resultTitle"></div><div id="resultSub">The call is in.</div></div>
+      </div></div>
+    </section>
+    <div id="paused"><span>Ⅱ</span><b id="pausedText">PAUSED</b></div>
+  </div>
+  <script>
+    const card = document.querySelector('#card');
+    const outcomes = document.querySelector('#outcomes');
+    const result = document.querySelector('#result');
+    let previousBetKey = '';
+    function text(node, value) { node.textContent = value ?? ''; }
+    function render(state) {
+      document.querySelector('#demoBadge').style.display = state.demoData ? 'inline-flex' : 'none';
+      document.querySelector('#paused').classList.toggle('show', Boolean(state.paused || state.adBreak));
+      text(document.querySelector('#pausedText'), state.adBreak ? 'AD BREAK · BETTING PAUSED' : 'PAUSED');
+      const bet = state.bet;
+      if (!bet) { card.classList.remove('visible'); return; }
+      const key = bet.question + '|' + bet.status;
+      if (key !== previousBetKey) {
+        previousBetKey = key;
+        result.classList.remove('shown', 'refunded');
+      }
+      text(document.querySelector('#question'), bet.question);
+      const liveState = document.querySelector('#liveState');
+      const isLocked = bet.status === 'locked';
+      text(liveState, isLocked ? 'LOCKED' : bet.status === 'open' ? 'LIVE' : bet.status.toUpperCase());
+      liveState.classList.toggle('locked', isLocked);
+      const total = bet.outcomes.reduce((sum, outcome) => sum + outcome.points, 0) || 1;
+      outcomes.replaceChildren(...bet.outcomes.map((outcome, index) => {
+        const row = document.createElement('div');
+        row.className = 'outcome' + (bet.status === 'resolved' && index === bet.winningOutcomeIndex ? ' winner' : '');
+        const title = document.createElement('div'); title.className = 'outcomeName'; text(title, outcome.title);
+        const stats = document.createElement('div'); stats.className = 'outcomeStats';
+        const points = document.createElement('strong'); text(points, outcome.points.toLocaleString()); stats.append(points, document.createTextNode(' pts · ' + outcome.bettors + (outcome.bettors === 1 ? ' bettor' : ' bettors')));
+        const track = document.createElement('div'); track.className = 'barTrack';
+        const fill = document.createElement('div'); fill.className = 'barFill'; fill.style.setProperty('--progress', String(outcome.points / total)); track.append(fill);
+        row.append(title, stats, track); return row;
+      }));
+      const timer = document.querySelector('#timer');
+      timer.classList.toggle('locked', isLocked);
+      text(timer, isLocked ? 'LOCKED' : Math.max(0, bet.secondsLeft) + ' SEC');
+      text(document.querySelector('#decision'), state.lastDecisionReason || 'Watching the moment…');
+      card.classList.add('visible');
+      if (bet.status === 'resolved') {
+        const winner = bet.outcomes[bet.winningOutcomeIndex ?? -1];
+        text(document.querySelector('#resultEyebrow'), 'WINNER');
+        text(document.querySelector('#resultTitle'), winner ? winner.title : 'Prediction resolved');
+        text(document.querySelector('#resultSub'), 'Call It saw the moment.');
+        result.classList.remove('refunded'); result.classList.add('shown');
+      } else if (bet.status === 'refunded') {
+        text(document.querySelector('#resultEyebrow'), 'REFUNDED');
+        text(document.querySelector('#resultTitle'), 'Points returned');
+        text(document.querySelector('#resultSub'), 'The moment was unclear, so nobody loses.');
+        result.classList.add('refunded', 'shown');
+      }
+    }
+    function connect() {
+      const socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+      socket.onmessage = event => { try { render(JSON.parse(event.data)); } catch (error) { console.error('Bad overlay state', error); } };
+      socket.onclose = () => setTimeout(connect, 1500);
+    }
+    connect();
+  </script>
+</body>
+</html>

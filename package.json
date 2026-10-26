@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "live": "node --env-file-if-exists=.env --import tsx src/cli.ts live",
-    "replay": "node --env-file-if-exists=.env --import tsx src/cli.ts replay"
+    "replay": "node --env-file-if-exists=.env --import tsx src/cli.ts replay",
+    "frames:test": "node --env-file-if-exists=.env --import tsx src/frames/test.ts",
+    "overlay:demo": "node --env-file-if-exists=.env --import tsx src/overlay/demo.ts"
   },
   "dependencies": {
     "obs-websocket-js": "^5.0.6",
