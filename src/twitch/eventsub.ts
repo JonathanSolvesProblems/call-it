@@ -65,6 +65,33 @@ export class NotificationDeduper {
   }
 }
 
+export class SentChatMessageIds {
+  private readonly ids = new Set<string>();
+  private readonly orderedIds: string[] = [];
+
+  constructor(private readonly capacity = 100) {
+    if (!Number.isInteger(capacity) || capacity < 1) throw new Error("Sent chat message ID capacity must be a positive integer.");
+  }
+
+  add(messageId: string): void {
+    if (this.ids.has(messageId)) return;
+    this.ids.add(messageId);
+    this.orderedIds.push(messageId);
+    if (this.orderedIds.length > this.capacity) {
+      const oldest = this.orderedIds.shift();
+      if (oldest !== undefined) this.ids.delete(oldest);
+    }
+  }
+
+  has(messageId: string): boolean {
+    return this.ids.has(messageId);
+  }
+}
+
+export function isSentChatMessage(messageId: unknown, sentMessageIds: SentChatMessageIds): boolean {
+  return typeof messageId === "string" && sentMessageIds.has(messageId);
+}
+
 const SUBSCRIPTIONS = [
   "channel.chat.message",
   "stream.online",
@@ -77,6 +104,7 @@ export class EventSubClient {
   private socket?: WebSocket;
   private readonly heartbeats = new Map<WebSocket, ReturnType<typeof setTimeout>>();
   private readonly notificationIds = new NotificationDeduper();
+  private readonly sentChatMessageIds = new SentChatMessageIds();
 
   constructor(
     private readonly helix: HelixClient,
@@ -95,6 +123,10 @@ export class EventSubClient {
     for (const heartbeat of this.heartbeats.values()) clearTimeout(heartbeat);
     this.heartbeats.clear();
     this.socket?.close();
+  }
+
+  recordSentChatMessageId(messageId: string): void {
+    this.sentChatMessageIds.add(messageId);
   }
 
   private async connect(url: string, reconnecting = false): Promise<void> {
@@ -118,6 +150,7 @@ export class EventSubClient {
           console.error(`EventSub subscription revoked: ${message.subscriptionType} (${message.status})`);
         } else if (message.type === "notification") {
           if (message.messageId && this.notificationIds.hasSeen(message.messageId)) return;
+          if (message.subscriptionType === "channel.chat.message" && isSentChatMessage(message.event.message_id, this.sentChatMessageIds)) return;
           void this.dispatch(message.subscriptionType, message.event).catch((error: unknown) => console.error("EventSub handler failed", error));
         }
       });
@@ -148,7 +181,6 @@ export class EventSubClient {
   private async dispatch(type: string, event: Record<string, unknown>): Promise<void> {
     if (type === "channel.chat.message") {
       const chatMessage = event as unknown as ChatMessageEvent;
-      if (chatMessage.chatter_user_id === this.userId) return;
       await this.handlers.onChatMessage(chatMessage);
     }
     if (type === "stream.online") await this.handlers.onStreamOnline();

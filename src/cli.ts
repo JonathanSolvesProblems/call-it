@@ -24,7 +24,8 @@ async function live(): Promise<void> {
       const moderator = event.badges.some((badge) => badge.set_id === "moderator") || event.chatter_user_id === broadcaster.id;
       if (!moderator) return;
       streamLive = (await helix.getStreams(broadcaster.id)).length > 0;
-      await helix.sendChatMessage(broadcaster.id, bot.id, `Call It is in ${mode} mode. Stream is ${streamLive ? "live" : "offline"}.`);
+      const messageId = await helix.sendChatMessage(broadcaster.id, bot.id, `Call It is in ${mode} mode. Stream is ${streamLive ? "live" : "offline"}.`);
+      if (messageId) eventsub.recordSentChatMessageId(messageId);
     },
     onStreamOnline: () => { streamLive = true; console.log("Stream is live."); },
     onStreamOffline: () => { streamLive = false; console.log("Stream is offline."); },

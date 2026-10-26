@@ -27,12 +27,13 @@ export class HelixClient {
     return (await this.request<{ data: TwitchStream[] }>(`/streams?user_id=${encodeURIComponent(userId)}`)).data;
   }
 
-  async sendChatMessage(broadcasterId: string, senderId: string, message: string): Promise<void> {
+  async sendChatMessage(broadcasterId: string, senderId: string, message: string): Promise<string | undefined> {
     // Requires user:write:chat. Twitch accepts the broadcaster and sending user IDs.
-    await this.request("/chat/messages", {
+    const response = await this.request<{ data: Array<{ message_id: string }> }>("/chat/messages", {
       method: "POST",
       body: JSON.stringify({ broadcaster_id: broadcasterId, sender_id: senderId, message }),
     });
+    return response.data[0]?.message_id;
   }
 
   async createEventSubSubscription(type: string, condition: Record<string, string>, sessionId: string): Promise<void> {

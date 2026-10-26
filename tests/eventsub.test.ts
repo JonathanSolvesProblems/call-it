@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { NotificationDeduper, parseEventSubMessage } from "../src/twitch/eventsub.js";
+import { isSentChatMessage, NotificationDeduper, parseEventSubMessage, SentChatMessageIds } from "../src/twitch/eventsub.js";
 
 const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/eventsub-${name}.json`, import.meta.url)), "utf8");
 
@@ -23,6 +23,15 @@ describe("EventSub message parsing", () => {
     expect(deduper.hasSeen("notification-1")).toBe(true);
     for (let id = 2; id <= 1001; id += 1) expect(deduper.hasSeen(`notification-${id}`)).toBe(false);
     expect(deduper.hasSeen("notification-1")).toBe(false);
+  });
+
+  it("skips only chat messages whose event message_id matches a sent bot message", () => {
+    const sentMessageIds = new SentChatMessageIds();
+    sentMessageIds.add("bot-message-1");
+
+    expect(isSentChatMessage("bot-message-1", sentMessageIds)).toBe(true);
+    expect(isSentChatMessage("broadcaster-command-1", sentMessageIds)).toBe(false);
+    expect(isSentChatMessage(undefined, sentMessageIds)).toBe(false);
   });
 
   it("returns unknown for malformed or unrecognized payloads", () => {
