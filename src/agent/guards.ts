@@ -2,6 +2,7 @@ import type { AgentAction, ActiveBetContext } from "./types.js";
 
 export interface GuardContext {
   nowMs: number;
+  mode?: "chat" | "native";
   bet: ActiveBetContext | null;
   lastOpenedAtMs: number | null;
   minGapSeconds: number;
@@ -22,7 +23,8 @@ export function validateAction(action: AgentAction, context: GuardContext): stri
       return `Wait at least ${context.minGapSeconds} seconds between bets.`;
     }
     const { question, outcomes, window_seconds, reason } = action.arguments;
-    if (question.length < 1 || question.length > 45) return "Question must be 1 to 45 characters.";
+    const questionLimit = context.mode === "native" ? 45 : 90;
+    if (question.length < 1 || question.length > questionLimit) return `Question must be 1 to ${questionLimit} characters.`;
     if (!Array.isArray(outcomes) || outcomes.length < 2 || outcomes.length > 10) return "A bet needs 2 to 10 outcomes.";
     if (outcomes.some((outcome) => typeof outcome !== "string" || outcome.length < 1 || outcome.length > 25)) return "Each outcome must be 1 to 25 characters.";
     if (!Number.isInteger(window_seconds) || window_seconds < 30 || window_seconds > 1800) return "Bet window must be 30 to 1800 seconds.";

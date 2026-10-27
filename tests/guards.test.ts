@@ -12,7 +12,7 @@ const activeBet: GuardContext["bet"] = {
 };
 
 function context(overrides: Partial<GuardContext> = {}): GuardContext {
-  return { nowMs: 20_000, bet: null, lastOpenedAtMs: null, minGapSeconds: 60, live: true, paused: false, adBreak: false, ...overrides };
+  return { nowMs: 20_000, mode: "chat", bet: null, lastOpenedAtMs: null, minGapSeconds: 60, live: true, paused: false, adBreak: false, ...overrides };
 }
 
 const openAction = (overrides: Partial<Extract<AgentAction, { tool: "open_bet" }>['arguments']> = {}): AgentAction => ({
@@ -40,8 +40,11 @@ describe("agent action guards", () => {
     expect(validateAction(openAction(), context({ live: false }))).toContain("offline");
   });
 
-  it("enforces question, outcome count, outcome length, and prediction window limits", () => {
-    expect(validateAction(openAction({ question: "q".repeat(46) }), context())).toContain("45 characters");
+  it("enforces chat and native question limits, outcome count, outcome length, and window limits", () => {
+    expect(validateAction(openAction({ question: "q".repeat(91) }), context())).toContain("90 characters");
+    expect(validateAction(openAction({ question: "q".repeat(90) }), context())).toBeNull();
+    expect(validateAction(openAction({ question: "q".repeat(46) }), context({ mode: "native" }))).toContain("45 characters");
+    expect(validateAction(openAction({ question: "q".repeat(45) }), context({ mode: "native" }))).toBeNull();
     expect(validateAction(openAction({ outcomes: ["only one"] }), context())).toContain("2 to 10");
     expect(validateAction(openAction({ outcomes: Array.from({ length: 11 }, (_, index) => `O${index}`) }), context())).toContain("2 to 10");
     expect(validateAction(openAction({ outcomes: ["x", "y".repeat(26)] }), context())).toContain("1 to 25");

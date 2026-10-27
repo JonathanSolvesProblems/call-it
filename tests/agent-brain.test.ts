@@ -6,6 +6,7 @@ import type { AgentContext } from "../src/agent/types.js";
 
 const context: AgentContext = {
   nowMs: 1000,
+  mode: "chat",
   frames: [{ timestampMs: 1000, jpegBase64: "ZmFrZQ==", sha256: "hash-1" }],
   bet: null,
   lastOpenedAtMs: null,

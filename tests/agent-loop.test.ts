@@ -9,6 +9,7 @@ import type { FrameSource } from "../src/frames/frame-source.js";
 import { OverlayServer } from "../src/overlay/server.js";
 
 const directories: string[] = [];
+const currentFrame = { timestampMs: 20_000, jpegBase64: "ZmFrZQ==", sha256: "frame-hash" };
 
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
@@ -37,7 +38,7 @@ describe("agent loop tool validation", () => {
       openBet: vi.fn(), lockBet: vi.fn(), resolveBet: vi.fn(), cancelBet: vi.fn(),
       checkDeadlines: vi.fn(async () => null),
     };
-    const frames: FrameSource = { latest: () => [] };
+    const frames: FrameSource = { latest: () => [currentFrame] };
     const loop = new AgentLoop({
       frames,
       brain: { model: "gpt-5.4-mini", call },
@@ -84,5 +85,38 @@ describe("agent loop tool validation", () => {
     const row = JSON.parse(await readFile(decisions.filePath, "utf8")) as { tool: string; guardResult: string };
     expect(row).toMatchObject({ tool: "timeout", guardResult: "accepted: automatic bet deadline" });
     expect(call).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["empty", []],
+    ["stale", [{ ...currentFrame, timestampMs: 9_999 }]],
+  ])("logs no_frames and skips the model for %s frames", async (_label, availableFrames) => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-agent-no-frames-"));
+    directories.push(directory);
+    const decisions = new DecisionLog(join(directory, "decisions.jsonl"));
+    const call = vi.fn();
+    const executor: AgentExecutor = {
+      getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }),
+      overlayBet: () => null,
+      setPaused: vi.fn(), setAdBreak: vi.fn(),
+      openBet: vi.fn(), lockBet: vi.fn(), resolveBet: vi.fn(), cancelBet: vi.fn(),
+      checkDeadlines: vi.fn(async () => null),
+    };
+    const loop = new AgentLoop({
+      frames: { latest: () => availableFrames } as FrameSource,
+      brain: { model: "gpt-5.4-mini", call },
+      executor,
+      decisions,
+      overlay: new OverlayServer(),
+      clock: () => 20_000,
+    });
+
+    await loop.tickOnce();
+
+    expect(call).not.toHaveBeenCalled();
+    expect(JSON.parse(await readFile(decisions.filePath, "utf8"))).toMatchObject({
+      tool: "no_frames",
+      guardResult: "model call skipped: no current frame",
+    });
   });
 });

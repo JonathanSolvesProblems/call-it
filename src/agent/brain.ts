@@ -67,6 +67,7 @@ function makeInput(context: AgentContext, detail: "low" | "high" | "auto"): Resp
     : { status: "none" };
   const text = [
     `Current bet: ${JSON.stringify(bet)}`,
+    `Active bet limits for ${context.mode} mode: question up to ${context.mode === "native" ? 45 : 90} characters, outcome titles up to 25 characters, 2 to 10 outcomes, window 30 to 1800 seconds. Write within these limits.`,
     `Recent decisions: ${JSON.stringify(context.decisions.slice(-10))}`,
     `Channel memory summary: ${context.memorySummary}`,
     `Ad break active: ${context.adBreak ? "yes" : "no"}`,

@@ -16,7 +16,7 @@ export const CALLIT_TOOLS = [
     parameters: {
       type: "object",
       properties: {
-        question: { type: "string", description: "Question up to 45 characters." },
+        question: { type: "string", description: "Question within the character limit provided in the current context." },
         outcomes: { type: "array", minItems: 2, maxItems: 10, items: { type: "string", description: "Outcome title up to 25 characters." } },
         window_seconds: { type: "integer", minimum: 30, maximum: 1800 },
         reason: { type: "string" },

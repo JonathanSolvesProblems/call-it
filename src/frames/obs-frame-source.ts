@@ -71,7 +71,7 @@ export class ObsFrameSource implements FrameSource {
         const { imageData } = await this.obs.call("GetSourceScreenshot", {
           sourceName: currentProgramSceneName,
           imageFormat: "jpg",
-          imageWidth: 768,
+          imageWidth: parsePositiveNumber(process.env.OBS_FRAME_WIDTH, 1280),
           imageCompressionQuality: 70,
         });
         const jpegBase64 = imageData.replace(/^data:image\/jpeg;base64,/, "");

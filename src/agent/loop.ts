@@ -28,6 +28,7 @@ export interface AgentLoopOptions {
   minGapSeconds?: number;
   maxBetSeconds?: number;
   memorySummary?: string;
+  mode?: "chat" | "native";
   clock?: () => number;
   onDecision?: (entry: DecisionEntry) => void;
 }
@@ -41,6 +42,7 @@ export class AgentLoop {
   private readonly tickSeconds: number;
   private readonly minGapSeconds: number;
   private readonly maxBetSeconds: number;
+  private readonly mode: "chat" | "native";
   private nextTickAtMs = 0;
 
   constructor(private readonly options: AgentLoopOptions) {
@@ -48,6 +50,7 @@ export class AgentLoop {
     this.tickSeconds = positiveNumber(options.tickSeconds ?? Number(process.env.TICK_SECONDS), 4);
     this.minGapSeconds = positiveNumber(options.minGapSeconds ?? Number(process.env.MIN_GAP_SECONDS), 60);
     this.maxBetSeconds = positiveNumber(options.maxBetSeconds ?? Number(process.env.MAX_BET_SECONDS), 900);
+    this.mode = options.mode ?? "chat";
   }
 
   setLive(live: boolean): void {
@@ -116,9 +119,19 @@ export class AgentLoop {
       return;
     }
 
+    const newestFrame = frames.at(-1);
+    if (!newestFrame || tickStartedAt - newestFrame.timestampMs > 10_000) {
+      await this.record({
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, model: this.options.brain.model,
+        tool: "no_frames", arguments: {}, guardResult: "model call skipped: no current frame", latencyMs: 0, inputTokens: 0, outputTokens: 0,
+      }, "No current frame is available. Waiting for OBS.");
+      return;
+    }
+
     const betContext = this.options.executor.getAgentBetContext(tickStartedAt);
     const context: AgentContext = {
       nowMs: tickStartedAt,
+      mode: this.mode,
       frames,
       bet: betContext.bet,
       lastOpenedAtMs: betContext.lastOpenedAtMs,
@@ -159,6 +172,7 @@ export class AgentLoop {
         const guardTime = this.clock();
         validationError = validateAction(decoded.action, {
           nowMs: guardTime,
+          mode: this.mode,
           bet: current.bet,
           lastOpenedAtMs: current.lastOpenedAtMs,
           minGapSeconds: this.minGapSeconds,
@@ -192,6 +206,7 @@ export class AgentLoop {
           const correctedContext = this.options.executor.getAgentBetContext(guardTime);
           validationError = validateAction(decoded.action, {
             nowMs: guardTime, bet: correctedContext.bet, lastOpenedAtMs: correctedContext.lastOpenedAtMs,
+            mode: this.mode,
             minGapSeconds: this.minGapSeconds, live: this.live, paused: this.paused, adBreak: this.adBreak,
           }) ?? undefined;
         }
