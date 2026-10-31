@@ -1,0 +1,11 @@
+{
+  "source": "Live run 2026-10-31 00:36 UTC. The first look resolved correctly from a target frame reading Tide Wisp, Dead, 0/76. The proof is gone two seconds later. Frames re-extracted from the OBS recording; the Call It overlay is blacked out and the browser tab bar is cropped.",
+  "question": "Will Pim clear the Tide Wisps?",
+  "outcomes": ["Win fight", "Go down"],
+  "outcomeIndex": 0,
+  "evidence": "The target frame shows Tide Wisp marked Dead with 0/76 HP, proving Pim cleared the Tide Wisps.",
+  "reason": "Pim cleared the Tide Wisps.",
+  "proposal": ["71.jpg", "72.jpg", "73.jpg"],
+  "newer": ["75.jpg", "77.jpg", "79.jpg"],
+  "expected": "confirm"
+}

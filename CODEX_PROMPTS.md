@@ -196,6 +196,57 @@ locked and settled). One wrong payout and some chat polish:
 Run typecheck and tests, commit. Also commit my `.gitignore` change (`broll/`) and
 `CODEX_PROMPTS.md`.
 
+## Second look review (2026-10-31)
+
+```
+Review of 7b7789e. I replayed two real cases from the live run through the second look,
+5 runs each, with gpt-5.4-mini. Fixtures are in eval/confirm-cases/ (case.json plus frames).
+
+  wrong-payout-wisp-alive (wisp at 77/594 HP):   rejected 5/5. Good.
+  true-kill-tide-wisp (target frame "Dead 0/76"): rejected 5/5. Bad.
+
+After a kill the proof disappears within two seconds (the target frame closes, the corpse
+only shows a loot marker). The second look only sees newer frames, so it rejects nearly
+every real kill and the bet times out. Fix:
+
+1. The second look sees the proposal frames and the newer frames. Store the proposal's
+   frames in the pending resolution. In the confirmation input, send the proposal frames
+   first, then the newer frames, and say in the text which images are PROPOSAL and which
+   are NEWER, with their timestamps. Replace the confirmation instructions with this
+   wording, which I tested (rejected 5/5 and confirmed 5/5 on the two cases):
+
+   This is a second-look confirmation of a proposed result. You get two sets of frames:
+   PROPOSAL frames (what the first look saw) and NEWER frames (captured after the
+   proposal). Confirm only if both hold:
+   1. A PROPOSAL frame shows the exact subject of the bet, by its full name, with the
+   outcome: a target frame or nameplate reading Dead or 0 HP, a defeat, reset or victory
+   banner naming it, or the player's own death. A combat log line, an experience line, or
+   loot alone is not enough, and a similar name never counts.
+   2. No NEWER frame contradicts it: the exact subject is not shown alive with health above
+   zero, and the fight against it is not still going.
+   After a kill the proof often disappears within seconds, so NEWER frames do not need to
+   repeat it. If the subject's health is above zero in any frame after the proposal,
+   reject. If unsure, reject.
+
+2. Lock the bet when a resolution is proposed, so nobody can bet after the outcome is on
+   screen. Send no LOCKED chat message for this lock. A reject restores the previous status
+   (restoreStatus already does this).
+3. A pending resolution cannot hang. After 2 confirmation calls in a row that are invalid
+   or fail, drop the proposal, restore the bet, and log it as "confirmation_failed". This
+   never settles a bet, so it is safe without a model decision.
+4. Add `npm run eval:confirm -- [runs]` (default 5). For each folder in
+   eval/confirm-cases/, read case.json, build the pending-resolution context from it, and
+   call the same AgentBrain confirmation path the live loop uses (not a copy of the
+   prompt). Print each case's confirm and reject counts against "expected", and write
+   eval/results/confirm-<ISO date>.json. You have no network, so test it with a fake
+   OpenAI client; I will run it for real.
+5. Tests: proposal frames reach the confirmation input in the right order and labels;
+   proposing a resolution locks the bet and a reject restores it; two failed confirmations
+   drop the proposal.
+
+Run typecheck and tests, commit. Also commit eval/confirm-cases/ and CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

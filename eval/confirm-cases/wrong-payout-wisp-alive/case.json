@@ -1,0 +1,11 @@
+{
+  "source": "Live run 2026-10-31 00:41 UTC. The first look resolved 'It dies' from old experience log lines while the wisp was at 106/594 HP. Frames re-extracted from the OBS recording; the Call It overlay is blacked out and the browser tab bar is cropped.",
+  "question": "Will Glass-Backed Tide Wisp be defeated this fight?",
+  "outcomes": ["It dies", "Player dies", "Reset/escape"],
+  "outcomeIndex": 0,
+  "evidence": "The combat log text 'Tide Wisp joins the fight' and earlier repeated experience gains for 'Tide Wisp' show the Glass-Backed Tide Wisp has been defeated.",
+  "reason": "Glass-Backed Tide Wisp went down.",
+  "proposal": ["366.jpg", "368.jpg", "370.jpg"],
+  "newer": ["372.jpg", "374.jpg", "376.jpg"],
+  "expected": "reject"
+}
