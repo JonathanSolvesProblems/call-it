@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-10-31T12:24:34.884Z",
+  "model": "gpt-5.4-mini",
+  "results": [
+    {
+      "id": "true-kill-tide-wisp",
+      "expected": "confirm",
+      "runs": 10,
+      "confirmCount": 9,
+      "rejectCount": 1,
+      "invalidCount": 0
+    },
+    {
+      "id": "wrong-payout-wisp-alive",
+      "expected": "reject",
+      "runs": 10,
+      "confirmCount": 0,
+      "rejectCount": 10,
+      "invalidCount": 0
+    }
+  ]
+}
