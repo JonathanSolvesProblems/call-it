@@ -2,7 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { FrameSource } from "../frames/frame-source.js";
 import { FrameArchive } from "../frames/frame-archive.js";
 import type { OverlayServer } from "../overlay/server.js";
-import { AgentBrain, functionCalls, type FunctionCall } from "./brain.js";
+import { AgentBrain, functionCalls, resolutionConfirmation, type FunctionCall } from "./brain.js";
 import { DecisionLog, type DecisionEntry } from "./decision-log.js";
 import { validateAction } from "./guards.js";
 import type { ActiveBetContext, AgentAction, AgentContext, OpenBetAction } from "./types.js";
@@ -14,6 +14,7 @@ export interface AgentExecutor {
   setAdBreak(adBreak: boolean): void;
   openBet(action: OpenBetAction, nowMs: number): Promise<void>;
   lockBet(reason: string, nowMs: number): Promise<void>;
+  lockBetForResolution(nowMs: number): Promise<void>;
   resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs: number): Promise<void>;
   restoreBetStatus(status: "open" | "locked", lockedAtMs?: number): Promise<void>;
   cancelBet(reason: string, nowMs: number): Promise<void>;
@@ -48,6 +49,8 @@ export class AgentLoop {
   private readonly mode: "chat" | "native";
   private readonly frameArchive: FrameArchive;
   private pendingResolution: NonNullable<AgentContext["pendingResolution"]> | undefined;
+  private pendingProposalFrames: NonNullable<AgentContext["proposalFrames"]> = [];
+  private confirmationFailures = 0;
   private nextTickAtMs = 0;
 
   constructor(private readonly options: AgentLoopOptions) {
@@ -110,7 +113,7 @@ export class AgentLoop {
     let frameFiles: string[] = [];
     const deadline = await this.options.executor.checkDeadlines(tickStartedAt, this.maxBetSeconds, Boolean(this.pendingResolution));
     if (deadline) {
-      if (deadline === "timeout") this.pendingResolution = undefined;
+      if (deadline === "timeout") this.clearPendingResolution();
       await this.record({
         timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: deadline, arguments: {}, guardResult: "accepted: automatic bet deadline", latencyMs: 0, inputTokens: 0, outputTokens: 0,
@@ -180,10 +183,11 @@ export class AgentLoop {
       adBreak: this.adBreak,
       secondsUntilNewBetAllowed,
       ...(this.pendingResolution ? { pendingResolution: this.pendingResolution } : {}),
+      ...(this.pendingResolution ? { proposalFrames: this.pendingProposalFrames } : {}),
     };
     if (this.pendingResolution) {
       if (!context.bet) {
-        this.pendingResolution = undefined;
+        this.clearPendingResolution();
         await this.record({
           timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
           tool: "reject_resolution", arguments: { reason: "The bet is no longer active." },
@@ -273,16 +277,21 @@ export class AgentLoop {
         if (action.tool === "resolve_bet") {
           const activeBet = this.options.executor.getAgentBetContext(this.clock()).bet;
           if (activeBet) {
+            const previousStatus = activeBet.status;
+            const previousLockedAtMs = activeBet.lockedAtMs;
+            if (activeBet.status === "open") await this.options.executor.lockBetForResolution(this.clock());
             this.pendingResolution = {
               outcomeIndex: action.arguments.outcome_index,
               outcome: activeBet.outcomes[action.arguments.outcome_index]!,
               evidence: action.arguments.evidence,
               reason: action.arguments.reason,
               proposedAtMs: this.clock(),
-              previousStatus: activeBet.status,
-              ...(activeBet.lockedAtMs === undefined ? {} : { previousLockedAtMs: activeBet.lockedAtMs }),
+              previousStatus,
+              ...(previousLockedAtMs === undefined ? {} : { previousLockedAtMs }),
               latestFrameTimestampMs: Math.max(...context.frames.map((frame) => frame.timestampMs)),
             };
+            this.pendingProposalFrames = context.frames.map((frame) => ({ ...frame }));
+            this.confirmationFailures = 0;
             guardResult = "accepted: pending second-look confirmation";
             reason = "Checking the proposed result.";
           }
@@ -348,6 +357,32 @@ export class AgentLoop {
       : bet;
   }
 
+  private clearPendingResolution(): void {
+    this.pendingResolution = undefined;
+    this.pendingProposalFrames = [];
+    this.confirmationFailures = 0;
+  }
+
+  private async failPendingResolution(
+    pending: NonNullable<AgentContext["pendingResolution"]>,
+    frameHashes: string[],
+    frameFiles: string[],
+    reason: string,
+    latencyMs: number,
+    inputTokens: number,
+    outputTokens: number,
+  ): Promise<void> {
+    await this.options.executor.restoreBetStatus(pending.previousStatus, pending.previousLockedAtMs);
+    this.clearPendingResolution();
+    await this.record({
+      timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+      tool: "confirmation_failed",
+      arguments: { reason, outcome_index: pending.outcomeIndex, outcome: pending.outcome, evidence: pending.evidence },
+      guardResult: "two consecutive confirmation calls failed or returned invalid tools; bet returned to its previous status without settlement",
+      latencyMs, inputTokens, outputTokens,
+    }, "Could not confirm the result. The bet remains open for another decision.");
+  }
+
   private async confirmPendingResolution(
     context: AgentContext,
     frameHashes: string[],
@@ -358,10 +393,15 @@ export class AgentLoop {
       const response = await this.options.brain.call(context);
       const latencyMs = Math.max(0, this.clock() - startedAt);
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
-      const decision = decodeConfirmation(functionCalls(response));
+      const decision = resolutionConfirmation(response);
       const pending = this.pendingResolution;
       if (!pending) return;
       if (decision.status === "invalid") {
+        this.confirmationFailures += 1;
+        if (this.confirmationFailures >= 2) {
+          await this.failPendingResolution(pending, frameHashes, frameFiles, "Two consecutive confirmation calls failed or returned invalid tools.", latencyMs, response.usage?.input_tokens ?? 0, response.usage?.output_tokens ?? 0);
+          return;
+        }
         await this.record({
           timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
           tool: "resolution_confirmation_invalid", arguments: { outcome_index: pending.outcomeIndex, evidence: pending.evidence },
@@ -371,7 +411,7 @@ export class AgentLoop {
         return;
       }
       if (decision.status === "confirm") {
-        this.pendingResolution = undefined;
+        this.clearPendingResolution();
         let guardResult = "model confirmed the exact subject and outcome using newer frames";
         try {
           await this.options.executor.resolveBet(pending.outcomeIndex, pending.evidence, pending.reason, this.clock());
@@ -388,7 +428,7 @@ export class AgentLoop {
       }
 
       await this.options.executor.restoreBetStatus(pending.previousStatus, pending.previousLockedAtMs);
-      this.pendingResolution = undefined;
+      this.clearPendingResolution();
       await this.record({
         timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: "reject_resolution",
@@ -399,6 +439,13 @@ export class AgentLoop {
     } catch (error) {
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
       const pending = this.pendingResolution;
+      if (pending) {
+        this.confirmationFailures += 1;
+        if (this.confirmationFailures >= 2) {
+          await this.failPendingResolution(pending, frameHashes, frameFiles, `Two consecutive confirmation calls failed: ${errorMessage(error)}`, Math.max(0, this.clock() - startedAt), 0, 0);
+          return;
+        }
+      }
       await this.record({
         timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: "resolution_confirmation_error", arguments: pending ? { outcome_index: pending.outcomeIndex, evidence: pending.evidence } : {},
@@ -424,23 +471,6 @@ function decodeCall(call: FunctionCall | undefined): { call?: FunctionCall; acti
   if (call.name === "resolve_bet" && typeof value.outcome_index === "number" && typeof value.evidence === "string" && typeof value.reason === "string") return { call, action: { tool: "resolve_bet", arguments: { outcome_index: value.outcome_index, evidence: value.evidence, reason: value.reason } } };
   if (call.name === "cancel_bet" && typeof value.reason === "string") return { call, action: { tool: "cancel_bet", arguments: { reason: value.reason } } };
   return { call, error: `Unknown tool or invalid arguments for ${call.name}.` };
-}
-
-function decodeConfirmation(calls: FunctionCall[]): { status: "confirm" } | { status: "reject"; reason: string } | { status: "invalid" } {
-  if (calls.length === 1) {
-    const call = calls[0]!;
-    try {
-      const args: unknown = JSON.parse(call.arguments);
-      if (call.name === "confirm_resolution" && args && typeof args === "object" && !Array.isArray(args) && Object.keys(args).length === 0) {
-        return { status: "confirm" };
-      }
-      if (call.name === "reject_resolution" && args && typeof args === "object" && !Array.isArray(args)) {
-        const reason = (args as Record<string, unknown>).reason;
-        if (typeof reason === "string" && reason.trim()) return { status: "reject", reason };
-      }
-    } catch { /* Invalid confirmation output rejects the proposal safely. */ }
-  }
-  return { status: "invalid" };
 }
 
 function reasonFor(action: AgentAction): string {

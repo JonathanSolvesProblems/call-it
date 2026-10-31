@@ -46,12 +46,11 @@ describe("agent loop tool validation", () => {
       }), "proposal"))
       .mockResolvedValueOnce(modelResponse(confirmationTool, confirmationTool === "confirm_resolution" ? "{}" : JSON.stringify({ reason: "The newer frame shows the Tide Wisp alive." }), "second-look"));
     let activeBet: NonNullable<ReturnType<AgentExecutor["getAgentBetContext"]>["bet"]> | null = {
-      status: "locked",
+      status: "open",
       question: "Will Glass-Backed Tide Wisp be defeated?",
       outcomes: ["It dies", "It survives"],
       pools: [{ points: 100, bettors: 1 }, { points: 50, bettors: 1 }],
       openedAtMs: 9_000,
-      lockedAtMs: 15_000,
       expiresAtMs: 60_000,
     };
     const executor: AgentExecutor = {
@@ -59,8 +58,20 @@ describe("agent loop tool validation", () => {
       overlayBet: () => activeBet ? { question: activeBet.question, outcomes: [{ title: "It dies", points: 100, bettors: 1 }, { title: "It survives", points: 50, bettors: 1 }], status: activeBet.status, secondsLeft: 0 } : null,
       setPaused: vi.fn(), setAdBreak: vi.fn(),
       openBet: vi.fn(), lockBet: vi.fn(),
+      lockBetForResolution: vi.fn(async (atMs: number) => {
+        if (activeBet?.status === "open") {
+          activeBet.status = "locked";
+          activeBet.lockedAtMs = atMs;
+        }
+      }),
       resolveBet: vi.fn(async () => { activeBet = null; }),
-      restoreBetStatus: vi.fn(),
+      restoreBetStatus: vi.fn(async (status, lockedAtMs) => {
+        if (activeBet) {
+          activeBet.status = status;
+          if (status === "open") delete activeBet.lockedAtMs;
+          else activeBet.lockedAtMs = lockedAtMs;
+        }
+      }),
       cancelBet: vi.fn(), checkDeadlines: vi.fn(async () => null),
     };
     const overlay = new OverlayServer();
@@ -94,16 +105,19 @@ describe("agent loop tool validation", () => {
     expect(call).toHaveBeenCalledTimes(2);
     expect(call.mock.calls[1]?.[0]).toMatchObject({
       pendingResolution: { outcome: "It dies", evidence: "Glass-Backed Tide Wisp shows 0 HP in the newest frame." },
+      proposalFrames: [{ timestampMs: 20_000 }],
       frames: [{ timestampMs: 24_000 }],
       secondsUntilNewBetAllowed: 165,
     });
     expect(executor.resolveBet).toHaveBeenCalledTimes(settles ? 1 : 0);
+    expect(executor.lockBetForResolution).toHaveBeenCalledTimes(1);
+    expect(executor.lockBet).not.toHaveBeenCalled();
     expect(executor.restoreBetStatus).toHaveBeenCalledTimes(settles ? 0 : 1);
-    if (!settles) expect(executor.restoreBetStatus).toHaveBeenCalledWith("locked", 15_000);
+    if (!settles) expect(executor.restoreBetStatus).toHaveBeenCalledWith("open", undefined);
     const entries = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string; arguments: { evidence?: string }; guardResult: string });
     expect(entries[0]).toMatchObject({ tool: "resolve_bet", arguments: { evidence: "Glass-Backed Tide Wisp shows 0 HP in the newest frame." }, guardResult: "accepted: pending second-look confirmation" });
     expect(entries[1]?.tool).toBe(confirmationTool);
-    if (!settles) expect(overlay.getState().bet?.status).toBe("locked");
+    if (!settles) expect(overlay.getState().bet?.status).toBe("open");
   });
 
   it("returns one invalid action to the model and waits if the correction is still invalid", async () => {
@@ -117,7 +131,7 @@ describe("agent loop tool validation", () => {
       getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }),
       overlayBet: () => null,
       setPaused: vi.fn(), setAdBreak: vi.fn(),
-      openBet: vi.fn(), lockBet: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
+      openBet: vi.fn(), lockBet: vi.fn(), lockBetForResolution: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
       checkDeadlines: vi.fn(async () => null),
     };
     const frames: FrameSource = { latest: () => [currentFrame] };
@@ -144,6 +158,48 @@ describe("agent loop tool validation", () => {
     expect(row.frameFiles).toHaveLength(1);
   });
 
+  it("drops a proposal after two failed confirmations and restores the previous status", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-confirm-failed-"));
+    directories.push(directory);
+    const decisions = new DecisionLog(join(directory, "decisions.jsonl"));
+    const call = vi.fn()
+      .mockResolvedValueOnce(modelResponse("resolve_bet", JSON.stringify({ outcome_index: 0, evidence: "Target is dead.", reason: "The target was defeated." }), "proposal"))
+      .mockResolvedValueOnce(modelResponse("wait", "{}", "invalid-confirmation-1"))
+      .mockRejectedValueOnce(new Error("temporary model failure"));
+    let activeBet: NonNullable<ReturnType<AgentExecutor["getAgentBetContext"]>["bet"]> | null = {
+      status: "open", question: "Will it be defeated?", outcomes: ["Yes", "No"],
+      pools: [{ points: 10, bettors: 1 }, { points: 0, bettors: 0 }], openedAtMs: 1_000, expiresAtMs: 60_000,
+    };
+    const executor: AgentExecutor = {
+      getAgentBetContext: () => ({ bet: activeBet, lastOpenedAtMs: 1_000 }),
+      overlayBet: () => activeBet ? { question: activeBet.question, outcomes: [], status: activeBet.status, secondsLeft: 0 } : null,
+      setPaused: vi.fn(), setAdBreak: vi.fn(), openBet: vi.fn(), lockBet: vi.fn(),
+      lockBetForResolution: vi.fn(async (atMs) => { if (activeBet) { activeBet.status = "locked"; activeBet.lockedAtMs = atMs; } }),
+      resolveBet: vi.fn(),
+      restoreBetStatus: vi.fn(async (status, lockedAtMs) => { if (activeBet) { activeBet.status = status; if (status === "open") delete activeBet.lockedAtMs; else activeBet.lockedAtMs = lockedAtMs; } }),
+      cancelBet: vi.fn(), checkDeadlines: vi.fn(async () => null),
+    };
+    let frameIndex = 0;
+    let notify!: () => void;
+    const failed = new Promise<void>((resolve) => { notify = resolve; });
+    const loop = new AgentLoop({
+      frames: { latest: () => [{ ...currentFrame, timestampMs: Date.now(), sha256: `frame-${frameIndex++}` }] }, brain: { model: "gpt-5.4-mini", call }, executor, decisions,
+      overlay: new OverlayServer(), frameArchive: new FrameArchive(join(directory, "frames")),
+      tickSeconds: 0.01,
+      onDecision: (entry) => { if (entry.tool === "confirmation_failed") notify(); },
+    });
+    loop.setLive(true);
+    await failed;
+    await loop.stop();
+
+    expect(call).toHaveBeenCalledTimes(3);
+    expect(executor.resolveBet).not.toHaveBeenCalled();
+    expect(executor.restoreBetStatus).toHaveBeenCalledWith("open", undefined);
+    expect(activeBet?.status).toBe("open");
+    const rows = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string });
+    expect(rows.at(-1)?.tool).toBe("confirmation_failed");
+  });
+
   it("logs automatic timeouts without calling the model", async () => {
     const directory = await mkdtemp(join(tmpdir(), "callit-agent-timeout-"));
     directories.push(directory);
@@ -153,7 +209,7 @@ describe("agent loop tool validation", () => {
       getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }),
       overlayBet: () => null,
       setPaused: vi.fn(), setAdBreak: vi.fn(),
-      openBet: vi.fn(), lockBet: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
+      openBet: vi.fn(), lockBet: vi.fn(), lockBetForResolution: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
       checkDeadlines: vi.fn(async () => "timeout" as const),
     };
     const loop = new AgentLoop({
@@ -183,7 +239,7 @@ describe("agent loop tool validation", () => {
       getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }),
       overlayBet: () => null,
       setPaused: vi.fn(), setAdBreak: vi.fn(),
-      openBet: vi.fn(), lockBet: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
+      openBet: vi.fn(), lockBet: vi.fn(), lockBetForResolution: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
       checkDeadlines: vi.fn(async () => null),
     };
     const loop = new AgentLoop({

@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 import type { Response } from "openai/resources/responses/responses.js";
 import { describe, expect, it, vi } from "vitest";
-import { AgentBrain, functionCalls } from "../src/agent/brain.js";
+import { AgentBrain, functionCalls, RESOLUTION_CONFIRMATION_INSTRUCTIONS } from "../src/agent/brain.js";
 import type { AgentContext } from "../src/agent/types.js";
+import { buildConfirmationContext, loadConfirmationCases } from "../eval/confirm-context.js";
 
 const context: AgentContext = {
   nowMs: 1000,
@@ -58,6 +59,30 @@ describe("agent Responses API request", () => {
     expect(request.tools.map((tool) => tool.name)).toEqual(["confirm_resolution", "reject_resolution"]);
     expect(request.instructions).toContain("second-look confirmation");
     expect(request.input[0]?.content[0]?.text).toContain("Glass-Backed Tide Wisp shows 0 HP");
+  });
+
+  it("sends proposal frames before newer frames with labels and timestamps on the shared confirmation path", async () => {
+    const cases = await loadConfirmationCases();
+    const testCase = cases.find(({ id }) => id === "true-kill-tide-wisp");
+    expect(testCase).toBeDefined();
+    const confirmationContext = await buildConfirmationContext(testCase!, 100_000);
+    const requests: unknown[] = [];
+    const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;
+    const brain = new AgentBrain({ OPENAI_API_KEY: "test-key" }, client);
+    await brain.call(confirmationContext);
+
+    const request = requests[0] as { instructions: string; input: Array<{ content: Array<{ type: string; text?: string; image_url?: string }> }> };
+    const content = request.input[0]?.content ?? [];
+    const text = content[0]?.text ?? "";
+    expect(request.instructions).toBe(RESOLUTION_CONFIRMATION_INSTRUCTIONS);
+    expect(text).toContain("PROPOSAL frames");
+    expect(text).toContain("NEWER frames");
+    for (const frame of confirmationContext.proposalFrames ?? []) expect(text).toContain(String(frame.timestampMs));
+    for (const frame of confirmationContext.frames) expect(text).toContain(String(frame.timestampMs));
+    expect(content.slice(1).map((part) => part.image_url)).toEqual([
+      ...(confirmationContext.proposalFrames ?? []).map((frame) => `data:image/jpeg;base64,${frame.jpegBase64}`),
+      ...confirmationContext.frames.map((frame) => `data:image/jpeg;base64,${frame.jpegBase64}`),
+    ]);
   });
 
   it("omits reasoning for non-GPT-5/6 models and sends low effort for GPT-6", async () => {

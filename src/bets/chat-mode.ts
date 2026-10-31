@@ -78,6 +78,12 @@ export class ChatBetService {
     if (pools.some((pool) => pool.bettors > 0)) await this.sendSafely(trimChat(`LOCKED: ${poolText || bet.question} | ${reason}`));
   }
 
+  async lockBetForResolution(nowMs = Date.now()): Promise<void> {
+    if (this.ledger.currentBet?.status !== "open") return;
+    await this.ledger.lock(nowMs);
+    this.overlay.update({ bet: this.ledger.overlayBet(nowMs) });
+  }
+
   async restoreBetStatus(status: "open" | "locked", lockedAtMs?: number): Promise<void> {
     await this.ledger.restoreStatus(status, lockedAtMs);
     this.overlay.update({ bet: this.ledger.overlayBet() });

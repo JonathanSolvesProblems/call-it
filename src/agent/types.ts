@@ -26,6 +26,7 @@ export interface AgentContext {
   nowMs: number;
   mode: "chat" | "native";
   frames: Array<{ timestampMs: number; jpegBase64: string; sha256: string }>;
+  proposalFrames?: Array<{ timestampMs: number; jpegBase64: string; sha256: string }>;
   bet: ActiveBetContext | null;
   lastOpenedAtMs: number | null;
   decisions: Array<Record<string, unknown>>;
