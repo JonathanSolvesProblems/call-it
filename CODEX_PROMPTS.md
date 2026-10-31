@@ -275,6 +275,57 @@ Update the fake-client test if it checks the instructions. Run typecheck and tes
 Also commit CODEX_PROMPTS.md.
 ```
 
+## Slice 6: replay mode and the chess grader (2026-10-31)
+
+```
+On 413cb11 the confirmation eval is now 10/10 confirm on the true kill and 10/10 reject on
+the wrong payout (eval/results/confirm-2026-10-31.json). Good.
+
+Next is the headline number from SPEC.md "Replay mode and measurement": Call It runs on
+real chess stream VODs, and a script with no model in it grades its bets against the
+official chess.com game records. I will supply the VOD frame folders and the game records
+(you have no network). Build the code and test it on small fixtures.
+
+1. Replay mode: `npm run replay -- <folder> [--memory off] [--from <s>] [--to <s>]`.
+   - <folder> holds frames named `<vodOffsetSeconds>.jpg` (1 fps, from ffmpeg) and
+     `vod.json`: { "vodId", "channel", "url", "startedAt" (ISO) }.
+   - Fake clock that starts at startedAt + from. Each tick advances TICK_SECONDS of VOD
+     time. Do not wait in real time: the next tick starts as soon as the last one is done.
+   - The frame source returns the 3 frames at or before the clock, 2 seconds apart, like
+     live. Reuse ReplayFrameSource if it fits.
+   - Same AgentLoop, prompt, tools, guards and second look as live. No OBS, no Twitch calls:
+     use the chat ledger in memory with a fake chat sender that only logs the message.
+     Treat the stream as live and nobody bets.
+   - `--memory off` passes "No stored channel memory summary yet." as the memory summary.
+   - Output in `eval/runs/<vodId>[-nomemory]/`: decisions.jsonl (each entry also has
+     vodOffsetSeconds) and bets.json, one entry per bet: question, outcomes, openedAt,
+     lockedAt, endedAt (ISO and VOD offset), and how it ended: resolved with the outcome
+     index and title, cancelled with the reason, or timeout.
+   - Print a running count of model calls and input and output tokens every 50 ticks, and
+     totals at the end.
+2. Grader: `npm run grade -- <runDir> <games.json>`. No model, no network.
+   - games.json is a list of games from the chess.com archive: { "url", "white", "black",
+     "result": "white" | "black" | "draw", "startedAt", "endedAt" (ISO), "streamer" (the
+     streamer's username) }.
+   - Match each bet to the game in progress when it opened (startedAt <= openedAt <= endedAt).
+     No game: ungraded, reason "no game in progress".
+   - Grade only bets about the game result. A bet is about the result when its outcomes map,
+     by rules, to the streamer winning, the opponent winning, or a draw. For example the
+     streamer's name, "win", "wins", "loses", "lose", the opponent's name, "white", "black",
+     "draw", "stalemate". Map the resolved outcome to a result and compare it with the record.
+     Anything the rules cannot map is ungraded, with the reason. Never count an ungraded
+     bet as correct.
+   - Cancelled and timed-out bets on a game are counted as "refunded", not as wrong.
+   - Output `eval/results/chess-<vodId>[-nomemory].json` plus a printed table: VOD hours,
+     bets opened, bets per hour, graded, matched the record, did not match, refunded,
+     ungraded (with reasons).
+3. Tests: replay with a fake brain over a fixture folder (clock, frame spacing, outputs);
+   grader with a fixture games.json covering a match, a mismatch, a refund, an ungraded bet
+   and a bet with no game in progress.
+
+Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

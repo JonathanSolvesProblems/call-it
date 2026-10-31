@@ -1,0 +1,4 @@
+[
+  { "url": "https://www.chess.com/game/one", "white": "Alice", "black": "Bob", "result": "white", "startedAt": "2026-01-01T00:00:10.000Z", "endedAt": "2026-01-01T00:00:19.000Z", "streamer": "Alice" },
+  { "url": "https://www.chess.com/game/two", "white": "Bob", "black": "Alice", "result": "black", "startedAt": "2026-01-01T00:00:20.000Z", "endedAt": "2026-01-01T00:00:29.000Z", "streamer": "Alice" }
+]
