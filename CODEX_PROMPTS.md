@@ -657,6 +657,22 @@ Add it to the README setup section as the step before npm run live. Tests with f
 each check. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Honest payout numbers (2026-10-31)
+
+```
+On the live stream the only bettor (arlayton9, 300 on "Bellows down") won, and the winner
+card and chat said "1 winner · +300 pts". That 300 is their own stake coming back: with no
+losing pool, nobody gained anything. "+300" reads as a profit.
+
+1. Payout line and winner card show net winnings: payout minus stake. Chat:
+   "Resolved: <outcome> | @<login> +<net> pts | N winners | <reason>".
+2. When every winner's net is 0 (nobody bet against them), say "stake returned" instead:
+   chat "Resolved: <outcome> | no one bet against it, stakes returned | <reason>", card
+   "1 winner · stake returned".
+3. Keep the existing refund wording when nobody was on the winning side.
+Tests for both lines. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Not built
 
 - Native Channel Points Predictions for Affiliate channels (dropped 2026-10-31; see SPEC.md).
