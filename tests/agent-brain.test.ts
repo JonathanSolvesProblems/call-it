@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { Response } from "openai/resources/responses/responses.js";
 import { describe, expect, it, vi } from "vitest";
 import { AgentBrain, functionCalls, RESOLUTION_CONFIRMATION_INSTRUCTIONS } from "../src/agent/brain.js";
+import { SYSTEM_PROMPT } from "../src/agent/prompt.js";
 import type { AgentContext } from "../src/agent/types.js";
 import { buildConfirmationContext, loadConfirmationCases } from "../eval/confirm-context.js";
 
@@ -74,7 +75,8 @@ describe("agent Responses API request", () => {
     const request = requests[0] as { instructions: string; input: Array<{ content: Array<{ type: string; text?: string; image_url?: string }> }> };
     const content = request.input[0]?.content ?? [];
     const text = content[0]?.text ?? "";
-    expect(request.instructions).toBe(RESOLUTION_CONFIRMATION_INSTRUCTIONS);
+    expect(request.instructions).toBe(`${SYSTEM_PROMPT}\n\n${RESOLUTION_CONFIRMATION_INSTRUCTIONS}`);
+    expect(request.instructions).toContain("A name label with no health bar, or with a loot marker, is a corpse, not a living enemy.");
     expect(text).toContain("PROPOSAL frames");
     expect(text).toContain("NEWER frames");
     for (const frame of confirmationContext.proposalFrames ?? []) expect(text).toContain(String(frame.timestampMs));

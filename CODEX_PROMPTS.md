@@ -247,6 +247,34 @@ every real kill and the bet times out. Fix:
 Run typecheck and tests, commit. Also commit eval/confirm-cases/ and CODEX_PROMPTS.md.
 ```
 
+## Confirmation eval results (2026-10-31)
+
+```
+I ran npm run eval:confirm -- 10 on ea1f54a:
+
+  true-kill-tide-wisp:     confirm 1/10 (expected confirm)
+  wrong-payout-wisp-alive: reject 10/10 (expected reject)
+
+The rejects say "newer frames still show Tide Wisps alive". Those are corpses: name labels
+with a loot marker and no health bar. I tested two changes locally, then reverted them:
+
+  + the corpse sentence below:                  true kill 6/10, wrong payout rejected 10/10
+  + the corpse sentence and SYSTEM_PROMPT back: true kill 9/10, wrong payout rejected 10/10
+
+Make both changes:
+
+1. Confirmation instructions are `${SYSTEM_PROMPT}\n\n${RESOLUTION_CONFIRMATION_INSTRUCTIONS}`
+   again, not the confirmation text alone.
+2. In RESOLUTION_CONFIRMATION_INSTRUCTIONS, right after "and the fight against it is not
+   still going.", add: "A name label with no health bar, or with a loot marker, is a corpse,
+   not a living enemy."
+3. Remove `eval/results/` from .gitignore. Measured results are committed so every number
+   in the write-up traces to a file.
+
+Update the fake-client test if it checks the instructions. Run typecheck and tests, commit.
+Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

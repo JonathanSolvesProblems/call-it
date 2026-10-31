@@ -6,7 +6,7 @@ import type { AgentContext } from "./types.js";
 
 export const RESOLUTION_CONFIRMATION_INSTRUCTIONS = `This is a second-look confirmation of a proposed result. You get two sets of frames: PROPOSAL frames (what the first look saw) and NEWER frames (captured after the proposal). Confirm only if both hold:
 1. A PROPOSAL frame shows the exact subject of the bet, by its full name, with the outcome: a target frame or nameplate reading Dead or 0 HP, a defeat, reset or victory banner naming it, or the player's own death. A combat log line, an experience line, or loot alone is not enough, and a similar name never counts.
-2. No NEWER frame contradicts it: the exact subject is not shown alive with health above zero, and the fight against it is not still going.
+2. No NEWER frame contradicts it: the exact subject is not shown alive with health above zero, and the fight against it is not still going. A name label with no health bar, or with a loot marker, is a corpse, not a living enemy.
 After a kill the proof often disappears within seconds, so NEWER frames do not need to repeat it. If the subject's health is above zero in any frame after the proposal, reject. If unsure, reject.`;
 
 export interface FunctionCall {
@@ -42,7 +42,7 @@ export class AgentBrain {
     const base = {
       model: this.model,
       instructions: confirming
-        ? RESOLUTION_CONFIRMATION_INSTRUCTIONS
+        ? `${SYSTEM_PROMPT}\n\n${RESOLUTION_CONFIRMATION_INSTRUCTIONS}`
         : SYSTEM_PROMPT,
       input,
       tools: confirming ? RESOLUTION_CONFIRMATION_TOOLS : CALLIT_TOOLS,
