@@ -1,0 +1,517 @@
+[
+  {
+    "question": "Will annacramling win this game?",
+    "outcomes": [
+      "Annacramling wins",
+      "Opponent wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:00:14.000Z",
+      "vodOffsetSeconds": 288
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:05:06.000Z",
+      "vodOffsetSeconds": 580
+    },
+    "endedAt": {
+      "iso": "2026-10-06T15:10:02.000Z",
+      "vodOffsetSeconds": 876
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Annacramling wins"
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "Rose Atwell",
+      "anna cramming",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:11:06.000Z",
+      "vodOffsetSeconds": 940
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T15:11:42.000Z",
+      "vodOffsetSeconds": 976
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The game has ended, but no clear winner banner or result text is visible."
+    }
+  },
+  {
+    "question": "Who wins this game: Anna Cramling or Nikita Meshkovs?",
+    "outcomes": [
+      "Anna Cramling",
+      "Nikita Meshkovs",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:15:46.000Z",
+      "vodOffsetSeconds": 1220
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:20:22.000Z",
+      "vodOffsetSeconds": 1496
+    },
+    "endedAt": {
+      "iso": "2026-10-06T15:20:54.000Z",
+      "vodOffsetSeconds": 1528
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Nikita Meshkovs"
+    }
+  },
+  {
+    "question": "Who will win this game of chess?",
+    "outcomes": [
+      "Anna Cramling",
+      "1stSecond",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:21:02.000Z",
+      "vodOffsetSeconds": 1536
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:30:54.000Z",
+      "vodOffsetSeconds": 2128
+    },
+    "endedAt": {
+      "iso": "2026-10-06T15:34:14.000Z",
+      "vodOffsetSeconds": 2328
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The game has moved on to a new matchup, so this bet can no longer be settled cleanly."
+    }
+  },
+  {
+    "question": "Who wins: Daniel Taboas Rodriguez or Anna Cramling?",
+    "outcomes": [
+      "Daniel Taboas Rodriguez",
+      "Anna Cramling"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:34:18.000Z",
+      "vodOffsetSeconds": 2332
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:38:50.000Z",
+      "vodOffsetSeconds": 2604
+    },
+    "endedAt": {
+      "iso": "2026-10-06T15:43:10.000Z",
+      "vodOffsetSeconds": 2864
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Daniel Taboas Rodriguez"
+    }
+  },
+  {
+    "question": "Who will win: Anna Cramling or biostatistician?",
+    "outcomes": [
+      "Anna Cramling",
+      "biostatistician",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:43:18.000Z",
+      "vodOffsetSeconds": 2872
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:45:46.000Z",
+      "vodOffsetSeconds": 3020
+    },
+    "endedAt": {
+      "iso": "2026-10-06T15:51:14.000Z",
+      "vodOffsetSeconds": 3348
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The Anna Cramling vs biostatistician game has moved on to a new matchup, and no result for this game has been shown."
+    }
+  },
+  {
+    "question": "Who will win Anna Cramling vs Nika Venskaya?",
+    "outcomes": [
+      "Anna Cramling",
+      "Nika Venskaya",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T15:51:18.000Z",
+      "vodOffsetSeconds": 3352
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T15:59:34.000Z",
+      "vodOffsetSeconds": 3848
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:00:02.000Z",
+      "vodOffsetSeconds": 3876
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Nika Venskaya"
+    }
+  },
+  {
+    "question": "Who will win this chess game?",
+    "outcomes": [
+      "Nika Venskaya",
+      "Anna Cramling",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:00:18.000Z",
+      "vodOffsetSeconds": 3892
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T16:02:02.000Z",
+      "vodOffsetSeconds": 3996
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The board has already reset to a new game, so this round clearly ended without a visible result."
+    }
+  },
+  {
+    "question": "Who wins this game: Anna Cramling or Kamila Rubinshein?",
+    "outcomes": [
+      "Anna Cramling",
+      "Kamila Rubinshein"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:03:34.000Z",
+      "vodOffsetSeconds": 4088
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:06:26.000Z",
+      "vodOffsetSeconds": 4260
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:12:26.000Z",
+      "vodOffsetSeconds": 4620
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna Cramling"
+    }
+  },
+  {
+    "question": "Who wins this chess game?",
+    "outcomes": [
+      "Anna Cramling",
+      "callmebyyourname06"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:12:30.000Z",
+      "vodOffsetSeconds": 4624
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T16:13:42.000Z",
+      "vodOffsetSeconds": 4696
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The game has moved on to a new round, and no winner was shown for this one."
+    }
+  },
+  {
+    "question": "Who will win: Maziar Bagheri or Anna Cramling?",
+    "outcomes": [
+      "Maziar Bagheri",
+      "Anna Cramling",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:17:10.000Z",
+      "vodOffsetSeconds": 4904
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:20:06.000Z",
+      "vodOffsetSeconds": 5080
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:21:30.000Z",
+      "vodOffsetSeconds": 5164
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Maziar Bagheri"
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "Maziar Bagheri",
+      "Anna Cramling"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:21:42.000Z",
+      "vodOffsetSeconds": 5176
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:22:14.000Z",
+      "vodOffsetSeconds": 5208
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:22:18.000Z",
+      "vodOffsetSeconds": 5212
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Maziar Bagheri"
+    }
+  },
+  {
+    "question": "What is the result of Anna Cramling vs Rodrigo Andias Sarlando?",
+    "outcomes": [
+      "Anna wins",
+      "Draw",
+      "Rodrigo wins"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:25:10.000Z",
+      "vodOffsetSeconds": 5384
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:29:46.000Z",
+      "vodOffsetSeconds": 5660
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:29:54.000Z",
+      "vodOffsetSeconds": 5668
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna wins"
+    }
+  },
+  {
+    "question": "Who wins this game: Rodrigo Andias Saralondo or Anna Cramling?",
+    "outcomes": [
+      "Rodrigo wins",
+      "Anna wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:35:54.000Z",
+      "vodOffsetSeconds": 6028
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T16:37:46.000Z",
+      "vodOffsetSeconds": 6140
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The round ended without a visible result, so this bet can’t be settled."
+    }
+  },
+  {
+    "question": "Who wins: Rodrigo Andias Saraldino or Anna Cramling?",
+    "outcomes": [
+      "Rodrigo wins",
+      "Anna wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:39:34.000Z",
+      "vodOffsetSeconds": 6248
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:40:38.000Z",
+      "vodOffsetSeconds": 6312
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:40:42.000Z",
+      "vodOffsetSeconds": 6316
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Anna wins"
+    }
+  },
+  {
+    "question": "Who wins this chess game?",
+    "outcomes": [
+      "Anna Cramling",
+      "Geniyan Genkeswaran",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:43:06.000Z",
+      "vodOffsetSeconds": 6460
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:46:38.000Z",
+      "vodOffsetSeconds": 6672
+    },
+    "endedAt": {
+      "iso": "2026-10-06T16:46:46.000Z",
+      "vodOffsetSeconds": 6680
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna Cramling"
+    }
+  },
+  {
+    "question": "Who wins this game: FM Geniyan Genkeswaran or WIM Anna Cramling?",
+    "outcomes": [
+      "Genkeswaran",
+      "Anna Cramling",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:48:06.000Z",
+      "vodOffsetSeconds": 6760
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T16:49:38.000Z",
+      "vodOffsetSeconds": 6852
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The game appears to have ended, but no winner or draw has appeared on screen."
+    }
+  },
+  {
+    "question": "Who wins Geniyan Genkeswaran vs Anna Cramling?",
+    "outcomes": [
+      "Geniyan wins",
+      "Anna wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T16:51:14.000Z",
+      "vodOffsetSeconds": 6948
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T16:51:58.000Z",
+      "vodOffsetSeconds": 6992
+    },
+    "endedAt": {
+      "iso": "2026-10-06T17:02:26.000Z",
+      "vodOffsetSeconds": 7620
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The result shown is for a different matchup, so this bet cannot be settled from it."
+    }
+  },
+  {
+    "question": "Who will win: KatakuriDono or anna craming?",
+    "outcomes": [
+      "KatakuriDono",
+      "anna craming",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T17:02:30.000Z",
+      "vodOffsetSeconds": 7624
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T17:09:30.000Z",
+      "vodOffsetSeconds": 8044
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The match shown no longer matches the bet, so this outcome can’t be seen."
+    }
+  },
+  {
+    "question": "Who will win this game: Anna Cramling or Dominika Iyahentseva?",
+    "outcomes": [
+      "Anna Cramling",
+      "Dominika Iyahentseva",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T17:09:38.000Z",
+      "vodOffsetSeconds": 8052
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T17:12:30.000Z",
+      "vodOffsetSeconds": 8224
+    },
+    "endedAt": {
+      "iso": "2026-10-06T17:13:14.000Z",
+      "vodOffsetSeconds": 8268
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Dominika Iyahentseva"
+    }
+  },
+  {
+    "question": "Who wins: sun chan lee or anna cramming?",
+    "outcomes": [
+      "sun chan lee",
+      "anna cramming",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T17:13:26.000Z",
+      "vodOffsetSeconds": 8280
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-06T17:14:10.000Z",
+      "vodOffsetSeconds": 8324
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The visible result names different players, so this bet cannot be settled from the screen."
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "annacramling",
+      "FastStrikerX",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-06T17:16:34.000Z",
+      "vodOffsetSeconds": 8468
+    },
+    "lockedAt": {
+      "iso": "2026-10-06T17:17:06.000Z",
+      "vodOffsetSeconds": 8500
+    },
+    "endedAt": {
+      "iso": "2026-10-06T17:17:10.000Z",
+      "vodOffsetSeconds": 8504
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "FastStrikerX"
+    }
+  }
+]

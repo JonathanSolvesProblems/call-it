@@ -1,0 +1,191 @@
+{
+  "vodId": "2893451280",
+  "memoryOff": false,
+  "vodHours": 2.4155555555555557,
+  "betsOpened": 22,
+  "betsPerHour": 9.107635694572217,
+  "graded": 7,
+  "matchedRecord": 7,
+  "didNotMatch": 0,
+  "refunded": 8,
+  "ungraded": 7,
+  "ungradedReasons": {
+    "no game in progress": 2,
+    "outcomes do not map to streamer win, opponent win, or draw": 5
+  },
+  "bets": [
+    {
+      "question": "Will annacramling win this game?",
+      "openedAt": "2026-10-06T15:00:14.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185612189939",
+      "status": "correct",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "black"
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-06T15:11:06.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185613389157",
+      "status": "refunded",
+      "reason": "The game has ended, but no clear winner banner or result text is visible."
+    },
+    {
+      "question": "Who wins this game: Anna Cramling or Nikita Meshkovs?",
+      "openedAt": "2026-10-06T15:15:46.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185613389157",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who will win this game of chess?",
+      "openedAt": "2026-10-06T15:21:02.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185613989289",
+      "status": "refunded",
+      "reason": "The game has moved on to a new matchup, so this bet can no longer be settled cleanly."
+    },
+    {
+      "question": "Who wins: Daniel Taboas Rodriguez or Anna Cramling?",
+      "openedAt": "2026-10-06T15:34:18.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185614589483",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who will win: Anna Cramling or biostatistician?",
+      "openedAt": "2026-10-06T15:43:18.000Z",
+      "status": "ungraded",
+      "reason": "no game in progress"
+    },
+    {
+      "question": "Who will win Anna Cramling vs Nika Venskaya?",
+      "openedAt": "2026-10-06T15:51:18.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185615190153",
+      "status": "correct",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "black"
+    },
+    {
+      "question": "Who will win this chess game?",
+      "openedAt": "2026-10-06T16:00:18.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185616389405",
+      "status": "refunded",
+      "reason": "The board has already reset to a new game, so this round clearly ended without a visible result."
+    },
+    {
+      "question": "Who wins this game: Anna Cramling or Kamila Rubinshein?",
+      "openedAt": "2026-10-06T16:03:34.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185616389405",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this chess game?",
+      "openedAt": "2026-10-06T16:12:30.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185616989429",
+      "status": "refunded",
+      "reason": "The game has moved on to a new round, and no winner was shown for this one."
+    },
+    {
+      "question": "Who will win: Maziar Bagheri or Anna Cramling?",
+      "openedAt": "2026-10-06T16:17:10.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185616989429",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-06T16:21:42.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185617589563",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "What is the result of Anna Cramling vs Rodrigo Andias Sarlando?",
+      "openedAt": "2026-10-06T16:25:10.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185617589563",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who wins this game: Rodrigo Andias Saralondo or Anna Cramling?",
+      "openedAt": "2026-10-06T16:35:54.000Z",
+      "status": "ungraded",
+      "reason": "no game in progress"
+    },
+    {
+      "question": "Who wins: Rodrigo Andias Saraldino or Anna Cramling?",
+      "openedAt": "2026-10-06T16:39:34.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185618789265",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this chess game?",
+      "openedAt": "2026-10-06T16:43:06.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185618789265",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this game: FM Geniyan Genkeswaran or WIM Anna Cramling?",
+      "openedAt": "2026-10-06T16:48:06.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185619389293",
+      "status": "refunded",
+      "reason": "The game appears to have ended, but no winner or draw has appeared on screen."
+    },
+    {
+      "question": "Who wins Geniyan Genkeswaran vs Anna Cramling?",
+      "openedAt": "2026-10-06T16:51:14.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185619389293",
+      "status": "refunded",
+      "reason": "The result shown is for a different matchup, so this bet cannot be settled from it."
+    },
+    {
+      "question": "Who will win: KatakuriDono or anna craming?",
+      "openedAt": "2026-10-06T17:02:30.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185619989573",
+      "status": "refunded",
+      "reason": "The match shown no longer matches the bet, so this outcome can’t be seen."
+    },
+    {
+      "question": "Who will win this game: Anna Cramling or Dominika Iyahentseva?",
+      "openedAt": "2026-10-06T17:09:38.000Z",
+      "gameUrl": "https://www.chess.com/game/live/185619989573",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins: sun chan lee or anna cramming?",
+      "openedAt": "2026-10-06T17:13:26.000Z",
+      "gameUrl": "https://www.chess.com/game/live/184915244668",
+      "status": "refunded",
+      "reason": "The visible result names different players, so this bet cannot be settled from the screen."
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-06T17:16:34.000Z",
+      "gameUrl": "https://www.chess.com/game/live/184915244668",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    }
+  ]
+}

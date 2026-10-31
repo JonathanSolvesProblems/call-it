@@ -1,0 +1,14 @@
+{
+  "vod": {
+    "vodId": "2893451280",
+    "channel": "annacramling",
+    "url": "https://www.twitch.tv/videos/2893451280",
+    "startedAt": "2026-10-06T14:55:26Z"
+  },
+  "memoryOff": false,
+  "fromSeconds": 0,
+  "toSeconds": 8696,
+  "tickSeconds": 4,
+  "ticks": 2175,
+  "maxCalls": 2600
+}
