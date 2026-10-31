@@ -33,7 +33,7 @@ On screen: the Codex thread: the spec going in as the first message, Codex build
 EventSub client, a Codex review catching something, the session ID via /status.
 Voice: "I built it in one Codex thread: [the two or three things Codex did that I could not
 have done in a week alone]." Say what Codex actually did, never "Codex handled the boring parts."
-Also say Claude Code was used for planning and review.
+Claude Code's role (planning, review, live testing, evaluation runs) is stated in the README.
 
 ## 2:15 to 2:30, final shot (a success landing, never a number)
 On screen: live, a bet the agent opened resolves the moment it ends: the payout message in
@@ -83,8 +83,7 @@ was right every time.
 I built it in one Codex thread, from a spec and an AGENTS.md file: 18 prompts, 26 commits,
 72 tests. Codex wrote the code: the Twitch EventSub client, the agent loop where the model
 picks one tool each tick, the guards and spend caps, the points ledger, the second look, and
-the replay mode and grader. I used Claude Code to plan, write the prompts, review each
-commit and run the live tests. Every prompt is in the repo.
+the replay mode and grader. Every prompt I sent Codex is in the repo.
 
 [2:10, terminal: npm run live, then OBS browser source] [D]
 Setup is one command, npm run live, plus a browser source in OBS. No server to host.
