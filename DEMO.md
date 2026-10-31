@@ -42,7 +42,7 @@ Voice: "Call it."
 
 ## Narration to record (final, 2026-10-31, revised for the judging criteria)
 
-About 340 words, roughly 2:25 read at a normal pace. Read it straight through; pauses
+About 370 words, roughly 2:30 read at a normal pace, which leaves room under the 3:00 limit. Read it straight through; pauses
 between parts are fine, I cut them. Facts trace to eval/results/2893451280-heldout/, the
 live log data/decisions.jsonl, git log and CODEX_PROMPTS.md.
 Criteria: [I] innovation, [P] potential impact, [T] technology and Codex, [D] design.
