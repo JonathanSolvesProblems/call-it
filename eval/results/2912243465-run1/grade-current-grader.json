@@ -4,14 +4,14 @@
   "vodHours": 2.808333333333333,
   "betsOpened": 21,
   "betsPerHour": 7.477744807121662,
-  "graded": 9,
+  "graded": 10,
   "matchedRecord": 4,
-  "didNotMatch": 5,
+  "didNotMatch": 6,
   "refunded": 3,
-  "ungraded": 9,
+  "ungraded": 8,
   "ungradedReasons": {
-    "outcomes do not map to streamer win, opponent win, or draw": 6,
-    "no game in progress": 3
+    "no game in progress": 3,
+    "outcomes do not map to streamer win, opponent win, or draw": 5
   },
   "bets": [
     {
@@ -55,8 +55,12 @@
       "question": "Will AnnaCramling win this game?",
       "openedAt": "2026-10-27T16:32:28.000Z",
       "gameUrl": "https://www.chess.com/game/live/187432695705",
-      "status": "ungraded",
-      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+      "status": "incorrect",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white",
+      "reason": "paid out before the game ended"
     },
     {
       "question": "Will Anna Cramling win this game?",
