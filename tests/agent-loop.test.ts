@@ -44,7 +44,7 @@ describe("agent loop tool validation", () => {
         evidence: "Glass-Backed Tide Wisp shows 0 HP in the newest frame.",
         reason: "The Glass-Backed Tide Wisp went down.",
       }), "proposal"))
-      .mockResolvedValueOnce(modelResponse(confirmationTool, confirmationTool === "confirm_resolution" ? "{}" : JSON.stringify({ reason: "The newer frame shows the Tide Wisp alive." }), "second-look"));
+      .mockResolvedValueOnce(modelResponse(confirmationTool, confirmationTool === "confirm_resolution" ? JSON.stringify({ outcome_index: 1, reason: "The second look shows it survived." }) : JSON.stringify({ reason: "The newer frame shows the Tide Wisp alive." }), "second-look"));
     let activeBet: NonNullable<ReturnType<AgentExecutor["getAgentBetContext"]>["bet"]> | null = {
       status: "open",
       question: "Will Glass-Backed Tide Wisp be defeated?",
@@ -110,6 +110,7 @@ describe("agent loop tool validation", () => {
       secondsUntilNewBetAllowed: 165,
     });
     expect(executor.resolveBet).toHaveBeenCalledTimes(settles ? 1 : 0);
+    if (settles) expect(executor.resolveBet).toHaveBeenCalledWith(1, expect.any(String), "The second look shows it survived.", expect.any(Number));
     expect(executor.lockBetForResolution).toHaveBeenCalledTimes(1);
     expect(executor.lockBet).not.toHaveBeenCalled();
     expect(executor.restoreBetStatus).toHaveBeenCalledTimes(settles ? 0 : 1);

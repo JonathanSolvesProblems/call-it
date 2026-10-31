@@ -1,0 +1,12 @@
+{
+  "source": "Anna Cramling VOD 2912243465, first replay run 2026-10-31. The first look proposed outcome 0; the chess.com record says outcome 1. Frames cropped to the board and name bars.",
+  "question": "Who wins this game?",
+  "outcomes": ["White", "Black", "Draw"],
+  "outcomeIndex": 0,
+  "evidence": "First-look proposal from the replay run.",
+  "reason": "Result shown on the board.",
+  "proposal": ["6836.jpg", "6838.jpg", "6840.jpg"],
+  "newer": ["6842.jpg", "6844.jpg", "6846.jpg"],
+  "expected": "confirm",
+  "expectedOutcomeIndex": 1
+}

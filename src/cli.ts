@@ -49,7 +49,7 @@ async function live(): Promise<void> {
     await decisions.loadRecent();
     agent = new AgentLoop({
       frames,
-      brain: new AgentBrain(),
+      brain: new AgentBrain({ ...process.env, OPENAI_MODEL: config.openAiModel, OPENAI_RESOLVE_MODEL: config.openAiResolveModel }),
       executor: chatBets,
       decisions,
       overlay,

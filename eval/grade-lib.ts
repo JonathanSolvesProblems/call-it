@@ -17,6 +17,7 @@ export interface BetRecord {
   question: string;
   outcomes: string[];
   openedAt: { iso: string; vodOffsetSeconds: number };
+  endedAt?: { iso: string; vodOffsetSeconds: number } | null;
   ended: { type: "resolved"; outcomeIndex: number; outcome: string } | { type: "cancelled"; reason: string } | { type: "timeout" } | null;
 }
 
@@ -78,6 +79,9 @@ export async function gradeRun(runDirectoryArg: string, gamesPathArg: string, re
     const predictedResults = outcomes[bet.ended.outcomeIndex];
     if (!predictedResults) return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "resolved outcome index is invalid" };
     const actualResult = game.result;
+    if (bet.endedAt && Date.parse(game.endedAt) - Date.parse(bet.endedAt.iso) > 10_000) {
+      return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "incorrect", predictedResults: [...predictedResults], actualResult, reason: "paid out before the game ended" };
+    }
     const status = predictedResults.has(actualResult) ? "correct" : "incorrect";
     return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status, predictedResults: [...predictedResults], actualResult };
   });
@@ -110,7 +114,7 @@ export function matchGameForBet(openedAtMs: number, games: ChessGame[]): ChessGa
   if (inProgress.length) return inProgress.at(-1);
   return ordered.find((game) => {
     const secondsBeforeStart = (Date.parse(game.startedAt) - openedAtMs) / 1000;
-    return secondsBeforeStart > 0 && secondsBeforeStart <= 60;
+    return secondsBeforeStart > 0 && secondsBeforeStart <= 300;
   });
 }
 

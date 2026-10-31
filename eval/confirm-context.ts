@@ -2,6 +2,17 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentContext } from "../src/agent/types.js";
+import type { resolutionConfirmation } from "../src/agent/brain.js";
+
+export function scoreConfirmation(
+  expected: Pick<ConfirmationCaseFile, "expected" | "expectedOutcomeIndex">,
+  actual: ReturnType<typeof resolutionConfirmation>,
+): "confirm" | "wrongOutcome" | "reject" | "invalid" {
+  if (actual.status === "confirm") {
+    return expected.expectedOutcomeIndex !== undefined && actual.outcomeIndex !== expected.expectedOutcomeIndex ? "wrongOutcome" : "confirm";
+  }
+  return actual.status;
+}
 
 export interface ConfirmationCaseFile {
   source: string;
@@ -13,6 +24,7 @@ export interface ConfirmationCaseFile {
   proposal: string[];
   newer: string[];
   expected: "confirm" | "reject";
+  expectedOutcomeIndex?: number;
 }
 
 export interface ConfirmationCase {
@@ -30,7 +42,8 @@ export async function loadConfirmationCases(directory = join(process.cwd(), "eva
   for (const id of names) {
     const caseDirectory = join(directory, id);
     const data = JSON.parse(await readFile(join(caseDirectory, "case.json"), "utf8")) as ConfirmationCaseFile;
-    if (!data.question || !Array.isArray(data.outcomes) || !data.proposal?.length || !data.newer?.length || !["confirm", "reject"].includes(data.expected)) {
+    if (!data.question || !Array.isArray(data.outcomes) || !data.proposal?.length || !data.newer?.length || !["confirm", "reject"].includes(data.expected) ||
+      (data.expectedOutcomeIndex !== undefined && (!Number.isInteger(data.expectedOutcomeIndex) || data.expectedOutcomeIndex < 0 || data.expectedOutcomeIndex >= data.outcomes.length))) {
       throw new Error(`Confirmation case ${id} is missing required fields.`);
     }
     cases.push({ id, directory: caseDirectory, data });

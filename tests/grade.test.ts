@@ -36,11 +36,27 @@ describe("chess outcome mapping", () => {
     expect(mapOutcomeToResults("Lose", "Will Anna win?", nameGame)).toBeNull();
   });
 
-  it("matches a bet opened 30 seconds before the game, but an active previous game wins", () => {
-    const openingTime = Date.parse(nameGame.startedAt) - 30_000;
+  it("matches a bet opened up to 300 seconds before the game, but an active previous game wins", () => {
+    const openingTime = Date.parse(nameGame.startedAt) - 299_000;
     expect(matchGameForBet(openingTime, [nameGame])).toBe(nameGame);
+    expect(matchGameForBet(Date.parse(nameGame.startedAt) - 301_000, [nameGame])).toBeUndefined();
     const previous: ChessGame = { ...nameGame, url: "previous", startedAt: "2025-12-31T23:00:00.000Z", endedAt: "2026-01-01T00:00:08.000Z" };
     expect(matchGameForBet(Date.parse("2026-01-01T00:00:05.000Z"), [nameGame, previous])?.url).toBe("previous");
+  });
+
+  it("marks resolved result bets paid out more than 10 seconds early as incorrect", async () => {
+    const root = await mkdtemp(join(tmpdir(), "callit-grade-early-payout-"));
+    directories.push(root);
+    const runDir = join(root, "fixture-vod");
+    const resultDir = join(root, "results");
+    await mkdir(runDir);
+    const opened = { iso: "2026-01-01T00:00:20.000Z", vodOffsetSeconds: 20 };
+    await writeFile(join(runDir, "run.json"), JSON.stringify({ vod: { vodId: "early" }, fromSeconds: 0, toSeconds: 3600 }));
+    await writeFile(join(runDir, "bets.json"), JSON.stringify([{ question: "Who wins?", outcomes: ["Anna", "Jan", "Draw"], openedAt: opened, endedAt: { iso: "2026-01-01T00:09:49.000Z", vodOffsetSeconds: 589 }, ended: { type: "resolved", outcomeIndex: 0, outcome: "Anna" } }]));
+    const games = join(root, "games.json");
+    await writeFile(games, JSON.stringify([nameGame]));
+    const result = await gradeRun(runDir, games, resultDir);
+    expect(result.bets[0]).toMatchObject({ status: "incorrect", reason: "paid out before the game ended" });
   });
 });
 

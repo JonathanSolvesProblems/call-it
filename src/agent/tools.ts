@@ -71,9 +71,14 @@ export const RESOLUTION_CONFIRMATION_TOOLS = [
   {
     type: "function",
     name: "confirm_resolution",
-    description: "Confirm the proposed result only if newer frames show the exact bet subject's outcome.",
+    description: "Confirm the result only if the proposal frames prove an outcome and no newer frame contradicts it. Choose the outcome the frames prove, even if it differs from the first proposal.",
     strict: true,
-    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+    parameters: {
+      type: "object",
+      properties: { outcome_index: { type: "integer", minimum: 0 }, reason: { type: "string", description: "Short viewer-facing result announcement." } },
+      required: ["outcome_index", "reason"],
+      additionalProperties: false,
+    },
   },
   {
     type: "function",

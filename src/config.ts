@@ -15,6 +15,8 @@ export const TWITCH_SCOPES = [
 export interface Config {
   twitchClientId: string;
   tokenPath: string;
+  openAiModel: string;
+  openAiResolveModel: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -22,6 +24,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!twitchClientId) {
     throw new Error("Missing TWITCH_CLIENT_ID. Add your Twitch app Client ID to .env.");
   }
-  return { twitchClientId, tokenPath: join(process.cwd(), "data", "token.json") };
+  return {
+    twitchClientId,
+    tokenPath: join(process.cwd(), "data", "token.json"),
+    openAiModel: env.OPENAI_MODEL?.trim() || "gpt-5.4-mini",
+    openAiResolveModel: env.OPENAI_RESOLVE_MODEL?.trim() || "gpt-6.1-sol",
+  };
 }
 

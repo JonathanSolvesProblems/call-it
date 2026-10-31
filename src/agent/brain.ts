@@ -7,7 +7,8 @@ import type { AgentContext } from "./types.js";
 export const RESOLUTION_CONFIRMATION_INSTRUCTIONS = `This is a second-look confirmation of a proposed result. You get two sets of frames: PROPOSAL frames (what the first look saw) and NEWER frames (captured after the proposal). Confirm only if both hold:
 1. A PROPOSAL frame shows the exact subject of the bet, by its full name, with the outcome: a target frame or nameplate reading Dead or 0 HP, a defeat, reset or victory banner naming it, or the player's own death. A combat log line, an experience line, or loot alone is not enough, and a similar name never counts.
 2. No NEWER frame contradicts it: the exact subject is not shown alive with health above zero, and the fight against it is not still going. A name label with no health bar, or with a loot marker, is a corpse, not a living enemy.
-After a kill the proof often disappears within seconds, so NEWER frames do not need to repeat it. If the subject's health is above zero in any frame after the proposal, reject. If unsure, reject.`;
+After a kill the proof often disappears within seconds, so NEWER frames do not need to repeat it. If the subject's health is above zero in any frame after the proposal, reject. If unsure, reject.
+You may confirm the proposed outcome or a different one: call confirm_resolution with the index of the outcome the frames prove. When a banner names a side, colour or perspective ("White Won", "You Won", "Victory"), work out which named player that is from the frame itself (the colour of the pieces next to their name, the board coordinates); "You" is the streamer. Do not assume the streamer's side from where they sit on screen.`;
 
 export interface FunctionCall {
   callId: string;
@@ -17,6 +18,7 @@ export interface FunctionCall {
 
 export class AgentBrain {
   readonly model: string;
+  readonly resolveModel: string;
   readonly imageDetail: "low" | "high" | "auto";
   private readonly client: OpenAI;
 
@@ -25,6 +27,7 @@ export class AgentBrain {
     if (!client && !apiKey) throw new Error("Missing OPENAI_API_KEY. Add your API key to .env.");
     this.client = client ?? new OpenAI({ apiKey });
     this.model = env.OPENAI_MODEL?.trim() || "gpt-5.4-mini";
+    this.resolveModel = env.OPENAI_RESOLVE_MODEL?.trim() || "gpt-6.1-sol";
     const detail = env.OPENAI_IMAGE_DETAIL?.trim().toLowerCase() || "high";
     if (detail !== "low" && detail !== "high" && detail !== "auto") throw new Error("OPENAI_IMAGE_DETAIL must be low, high, or auto.");
     this.imageDetail = detail;
@@ -39,8 +42,9 @@ export class AgentBrain {
         } satisfies ResponseInputItem))
       : makeInput(context, this.imageDetail);
     const confirming = Boolean(context.pendingResolution);
+    const model = confirming ? this.resolveModel : this.model;
     const base = {
-      model: this.model,
+      model,
       instructions: confirming
         ? `${SYSTEM_PROMPT}\n\n${RESOLUTION_CONFIRMATION_INSTRUCTIONS}`
         : SYSTEM_PROMPT,
@@ -50,7 +54,7 @@ export class AgentBrain {
       parallel_tool_calls: false,
       ...(retry ? { previous_response_id: retry.previousResponseId } : {}),
     };
-    if (/^gpt-[56](?:[.-]|$)/i.test(this.model)) {
+    if (/^gpt-[56](?:[.-]|$)/i.test(model)) {
       return this.client.responses.create({ ...base, reasoning: { effort: "low" } });
     }
     return this.client.responses.create(base);
@@ -63,14 +67,17 @@ export function functionCalls(response: Response): FunctionCall[] {
     : []);
 }
 
-export function resolutionConfirmation(response: Response): { status: "confirm" } | { status: "reject"; reason: string } | { status: "invalid" } {
+export function resolutionConfirmation(response: Response): { status: "confirm"; outcomeIndex: number; reason: string } | { status: "reject"; reason: string } | { status: "invalid" } {
   const calls = functionCalls(response);
   if (calls.length === 1) {
     const call = calls[0]!;
     try {
       const args: unknown = JSON.parse(call.arguments);
-      if (call.name === "confirm_resolution" && args && typeof args === "object" && !Array.isArray(args) && Object.keys(args).length === 0) {
-        return { status: "confirm" };
+      if (call.name === "confirm_resolution" && args && typeof args === "object" && !Array.isArray(args)) {
+        const value = args as Record<string, unknown>;
+        if (Number.isInteger(value.outcome_index) && (value.outcome_index as number) >= 0 && typeof value.reason === "string" && value.reason.trim()) {
+          return { status: "confirm", outcomeIndex: value.outcome_index as number, reason: value.reason };
+        }
       }
       if (call.name === "reject_resolution" && args && typeof args === "object" && !Array.isArray(args)) {
         const reason = (args as Record<string, unknown>).reason;

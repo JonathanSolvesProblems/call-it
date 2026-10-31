@@ -48,7 +48,7 @@ describe("fast VOD replay", () => {
           hasOpened = true;
           return fn("open_bet", { question: "Will Alice win this game?", outcomes: ["Alice wins", "Bob wins"], window_seconds: 30, reason: "A new chess game has started." }, calls);
         }
-        if (context.pendingResolution) { hasSettled = true; return fn("confirm_resolution", {}, calls); }
+        if (context.pendingResolution) { hasSettled = true; return fn("confirm_resolution", { outcome_index: 0, reason: "The board shows checkmate." }, calls); }
         if (!hasSettled && !resolutionProposed && context.nowMs >= base + 32_000) {
           resolutionProposed = true;
           return fn("resolve_bet", { outcome_index: 0, evidence: `${context.frames.at(-1)?.timestampMs}: Alice checkmates Bob.`, reason: "Alice won the game." }, calls);

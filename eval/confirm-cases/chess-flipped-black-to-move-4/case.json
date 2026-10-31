@@ -1,0 +1,12 @@
+{
+  "source": "Anna Cramling VOD 2912243465, first replay run 2026-10-31. The first look proposed outcome 1; the chess.com record says outcome 0. Frames cropped to the board and name bars.",
+  "question": "Who wins this game?",
+  "outcomes": ["Harold Wanyama", "AnnaCramling", "Draw"],
+  "outcomeIndex": 1,
+  "evidence": "First-look proposal from the replay run.",
+  "reason": "Result shown on the board.",
+  "proposal": ["2072.jpg", "2074.jpg", "2076.jpg"],
+  "newer": ["2078.jpg", "2080.jpg", "2082.jpg"],
+  "expected": "confirm",
+  "expectedOutcomeIndex": 0
+}

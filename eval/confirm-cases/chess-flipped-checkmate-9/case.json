@@ -1,0 +1,12 @@
+{
+  "source": "Anna Cramling VOD 2912243465, first replay run 2026-10-31. The first look proposed outcome 0; the chess.com record says outcome 1. Frames cropped to the board and name bars.",
+  "question": "Who wins this game: Anna Cramling or Ayan Allahverdiyeva?",
+  "outcomes": ["Anna", "Ayan", "Draw"],
+  "outcomeIndex": 0,
+  "evidence": "First-look proposal from the replay run.",
+  "reason": "Result shown on the board.",
+  "proposal": ["4440.jpg", "4442.jpg", "4444.jpg"],
+  "newer": ["4446.jpg", "4448.jpg", "4450.jpg"],
+  "expected": "confirm",
+  "expectedOutcomeIndex": 1
+}

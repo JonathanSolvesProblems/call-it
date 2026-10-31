@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AgentBrain, functionCalls, RESOLUTION_CONFIRMATION_INSTRUCTIONS } from "../src/agent/brain.js";
 import { SYSTEM_PROMPT } from "../src/agent/prompt.js";
 import type { AgentContext } from "../src/agent/types.js";
-import { buildConfirmationContext, loadConfirmationCases } from "../eval/confirm-context.js";
+import { buildConfirmationContext, loadConfirmationCases, scoreConfirmation } from "../eval/confirm-context.js";
 
 const context: AgentContext = {
   nowMs: 1000,
@@ -43,7 +43,7 @@ describe("agent Responses API request", () => {
   it("uses only confirmation tools and includes the proposed evidence on the second look", async () => {
     const requests: unknown[] = [];
     const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;
-    const brain = new AgentBrain({ OPENAI_API_KEY: "test-key" }, client);
+    const brain = new AgentBrain({ OPENAI_API_KEY: "test-key", OPENAI_RESOLVE_MODEL: "gpt-6.1-sol", OPENAI_MODEL: "gpt-5.4-mini" }, client);
     await brain.call({
       ...context,
       pendingResolution: {
@@ -56,10 +56,20 @@ describe("agent Responses API request", () => {
         latestFrameTimestampMs: 1000,
       },
     });
-    const request = requests[0] as { tools: Array<{ name: string }>; instructions: string; input: Array<{ content: Array<{ text?: string }> }> };
+    const request = requests[0] as { model: string; tools: Array<{ name: string }>; instructions: string; input: Array<{ content: Array<{ text?: string }> }> };
+    expect(request.model).toBe("gpt-6.1-sol");
     expect(request.tools.map((tool) => tool.name)).toEqual(["confirm_resolution", "reject_resolution"]);
     expect(request.instructions).toContain("second-look confirmation");
     expect(request.input[0]?.content[0]?.text).toContain("Glass-Backed Tide Wisp shows 0 HP");
+  });
+
+  it("keeps normal ticks on OPENAI_MODEL and uses the resolve model only for confirmation", async () => {
+    const requests: unknown[] = [];
+    const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;
+    const brain = new AgentBrain({ OPENAI_API_KEY: "test-key", OPENAI_MODEL: "gpt-5.4-mini", OPENAI_RESOLVE_MODEL: "gpt-6.1-sol" }, client);
+    await brain.call(context);
+    await brain.call({ ...context, pendingResolution: { outcomeIndex: 0, outcome: "Yes", evidence: "evidence", reason: "reason", proposedAtMs: 0, previousStatus: "locked", latestFrameTimestampMs: 0 } });
+    expect(requests.map((request) => (request as { model: string }).model)).toEqual(["gpt-5.4-mini", "gpt-6.1-sol"]);
   });
 
   it("sends proposal frames before newer frames with labels and timestamps on the shared confirmation path", async () => {
@@ -101,5 +111,13 @@ describe("agent Responses API request", () => {
   it("extracts function_call items from response.output", () => {
     const call = { type: "function_call", call_id: "call-1", name: "wait", arguments: "{}" } as Response["output"][number];
     expect(functionCalls(response([call]))).toEqual([{ callId: "call-1", name: "wait", arguments: "{}" }]);
+  });
+});
+
+describe("confirmation evaluation scoring", () => {
+  it("counts a confirmation on a different expected outcome as wrong outcome", () => {
+    expect(scoreConfirmation({ expected: "confirm", expectedOutcomeIndex: 2 }, { status: "confirm", outcomeIndex: 1, reason: "White won." })).toBe("wrongOutcome");
+    expect(scoreConfirmation({ expected: "confirm", expectedOutcomeIndex: 2 }, { status: "confirm", outcomeIndex: 2, reason: "Draw." })).toBe("confirm");
+    expect(scoreConfirmation({ expected: "reject" }, { status: "reject", reason: "Unclear." })).toBe("reject");
   });
 });

@@ -23,7 +23,7 @@ export interface AgentExecutor {
 
 export interface AgentLoopOptions {
   frames: FrameSource;
-  brain: Pick<AgentBrain, "model" | "call">;
+  brain: Pick<AgentBrain, "model" | "call"> & Partial<Pick<AgentBrain, "resolveModel">>;
   executor: AgentExecutor;
   decisions: DecisionLog;
   overlay: OverlayServer;
@@ -54,6 +54,7 @@ export class AgentLoop {
   private readonly maxBetSeconds: number;
   private readonly mode: "chat" | "native";
   private readonly frameArchive: FrameArchive;
+  private readonly resolveModel: string;
   private pendingResolution: NonNullable<AgentContext["pendingResolution"]> | undefined;
   private pendingProposalFrames: NonNullable<AgentContext["proposalFrames"]> = [];
   private confirmationFailures = 0;
@@ -69,6 +70,7 @@ export class AgentLoop {
     this.maxBetSeconds = positiveNumber(options.maxBetSeconds ?? Number(process.env.MAX_BET_SECONDS), 900);
     this.mode = options.mode ?? "chat";
     this.frameArchive = options.frameArchive ?? new FrameArchive();
+    this.resolveModel = options.brain.resolveModel ?? options.brain.model;
   }
 
   setLive(live: boolean): void {
@@ -440,7 +442,7 @@ export class AgentLoop {
     await this.options.executor.restoreBetStatus(pending.previousStatus, pending.previousLockedAtMs);
     this.clearPendingResolution();
     await this.record({
-      timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+      timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
       tool: "confirmation_failed",
       arguments: { reason, outcome_index: pending.outcomeIndex, outcome: pending.outcome, evidence: pending.evidence },
       guardResult: "two consecutive confirmation calls failed or returned invalid tools; bet returned to its previous status without settlement",
@@ -461,9 +463,12 @@ export class AgentLoop {
       this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
       const latencyMs = Math.max(0, this.clock() - startedAt);
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
-      const decision = resolutionConfirmation(response);
+      let decision = resolutionConfirmation(response);
       const pending = this.pendingResolution;
       if (!pending) return;
+      if (decision.status === "confirm" && (!context.bet || decision.outcomeIndex >= context.bet.outcomes.length)) {
+        decision = { status: "invalid" };
+      }
       if (decision.status === "invalid") {
         this.confirmationFailures += 1;
         if (this.confirmationFailures >= 2) {
@@ -471,7 +476,7 @@ export class AgentLoop {
           return;
         }
         await this.record({
-          timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+          timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
           tool: "resolution_confirmation_invalid", arguments: { outcome_index: pending.outcomeIndex, evidence: pending.evidence },
           guardResult: "model did not call confirm_resolution or reject_resolution; proposal remains pending",
           latencyMs, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0,
@@ -479,26 +484,32 @@ export class AgentLoop {
         return;
       }
       if (decision.status === "confirm") {
+        if (!context.bet) throw new Error("Cannot confirm a resolution without an active bet.");
+        const confirmedOutcomeIndex = decision.outcomeIndex;
+        const confirmedOutcome = context.bet.outcomes[confirmedOutcomeIndex]!;
         this.clearPendingResolution();
         let guardResult = "model confirmed the exact subject and outcome using newer frames";
+        if (confirmedOutcomeIndex !== pending.outcomeIndex) {
+          guardResult += `; corrected from ${pending.outcome} to ${confirmedOutcome}`;
+        }
         try {
-          await this.options.executor.resolveBet(pending.outcomeIndex, pending.evidence, pending.reason, this.clock());
+          await this.options.executor.resolveBet(confirmedOutcomeIndex, pending.evidence, decision.reason, this.clock());
         } catch (error) {
           guardResult = `model confirmed; settlement failed: ${errorMessage(error)}`;
         }
         await this.record({
-          timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+          timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
           tool: "confirm_resolution",
-          arguments: { outcome_index: pending.outcomeIndex, outcome: pending.outcome, evidence: pending.evidence, reason: pending.reason },
+          arguments: { outcome_index: confirmedOutcomeIndex, outcome: confirmedOutcome, evidence: pending.evidence, reason: decision.reason },
           guardResult, latencyMs, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0,
-        }, pending.reason);
+        }, decision.reason);
         return;
       }
 
       await this.options.executor.restoreBetStatus(pending.previousStatus, pending.previousLockedAtMs);
       this.clearPendingResolution();
       await this.record({
-        timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+        timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
         tool: "reject_resolution",
         arguments: { reason: decision.reason, outcome_index: pending.outcomeIndex, outcome: pending.outcome, evidence: pending.evidence },
         guardResult: "model rejected the proposed resolution; bet returned to its previous status",
@@ -515,7 +526,7 @@ export class AgentLoop {
         }
       }
       await this.record({
-        timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+        timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
         tool: "resolution_confirmation_error", arguments: pending ? { outcome_index: pending.outcomeIndex, evidence: pending.evidence } : {},
         guardResult: `model confirmation failed; proposal remains pending: ${errorMessage(error)}`,
         latencyMs: Math.max(0, this.clock() - startedAt), inputTokens: 0, outputTokens: 0,
