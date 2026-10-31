@@ -10,6 +10,7 @@ import { OverlayServer } from "./overlay/server.js";
 import { TwitchAuth } from "./twitch/auth.js";
 import { EventSubClient } from "./twitch/eventsub.js";
 import { HelixClient } from "./twitch/helix.js";
+import { runReplay } from "./replay/run.js";
 
 async function live(): Promise<void> {
   const config = loadConfig();
@@ -131,12 +132,12 @@ async function live(): Promise<void> {
   if (forceLive && !streamLive) console.log("CALLIT_FORCE_LIVE=1 is enabled. The agent loop is running offline for testing.");
 }
 
-async function replay(folder: string | undefined): Promise<void> {
+async function replay(folder: string | undefined, args: string[]): Promise<void> {
   if (!folder) throw new Error("Usage: npm run replay -- <folder>");
-  throw new Error(`Replay agent execution is not wired yet for ${folder}.`);
+  await runReplay(folder, args);
 }
 
 const command = process.argv[2];
 if (command === "live") await live();
-else if (command === "replay") await replay(process.argv[3]);
+else if (command === "replay") await replay(process.argv[3], process.argv.slice(4));
 else throw new Error("Usage: npm run live | npm run replay -- <folder>");

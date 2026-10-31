@@ -12,6 +12,7 @@ export interface DecisionEntry {
   latencyMs: number;
   inputTokens: number;
   outputTokens: number;
+  vodOffsetSeconds?: number;
 }
 
 export class DecisionLog {

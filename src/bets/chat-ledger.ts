@@ -57,7 +57,7 @@ export class ChatBetLedger {
   currentBet: ChatBet | null;
   lastOpenedAtMs: number | null;
 
-  private constructor(private readonly filePath: string, saved: PersistedLedger) {
+  private constructor(private readonly filePath: string | undefined, saved: PersistedLedger) {
     this.balances = saved.balances;
     this.currentBet = saved.currentBet;
     this.lastOpenedAtMs = saved.lastOpenedAtMs;
@@ -72,6 +72,10 @@ export class ChatBetLedger {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
     return new ChatBetLedger(filePath, saved);
+  }
+
+  static inMemory(): ChatBetLedger {
+    return new ChatBetLedger(undefined, { balances: {}, currentBet: null, lastOpenedAtMs: null });
   }
 
   balance(userId: string): number {
@@ -190,11 +194,13 @@ export class ChatBetLedger {
   }
 
   private async save(): Promise<void> {
+    const filePath = this.filePath;
+    if (!filePath) return;
     const saved: PersistedLedger = { balances: this.balances, currentBet: this.currentBet, lastOpenedAtMs: this.lastOpenedAtMs };
     const content = `${JSON.stringify(saved, null, 2)}\n`;
     this.saveQueue = this.saveQueue.then(async () => {
-      await mkdir(dirname(this.filePath), { recursive: true });
-      await writeFile(this.filePath, content, { mode: 0o600 });
+      await mkdir(dirname(filePath), { recursive: true });
+      await writeFile(filePath, content, { mode: 0o600 });
     });
     await this.saveQueue;
   }

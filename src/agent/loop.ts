@@ -35,6 +35,10 @@ export interface AgentLoopOptions {
   frameArchive?: FrameArchive;
   clock?: () => number;
   onDecision?: (entry: DecisionEntry) => void;
+  decisionMetadata?: () => Pick<DecisionEntry, "vodOffsetSeconds">;
+  archiveFrames?: boolean;
+  onModelCall?: (usage: { inputTokens: number; outputTokens: number }) => void;
+  onModelCallStart?: () => void;
 }
 
 export class AgentLoop {
@@ -98,6 +102,15 @@ export class AgentLoop {
     await this.runTick();
   }
 
+  async runReplayTicks(tickCount: number, advanceClock: () => void): Promise<void> {
+    this.live = true;
+    for (let tick = 0; tick < tickCount; tick += 1) {
+      await this.runTick();
+      advanceClock();
+    }
+    this.live = false;
+  }
+
   private async run(): Promise<void> {
     while (this.live) {
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
@@ -153,7 +166,7 @@ export class AgentLoop {
     frameHashes = framesForModel.map((frame) => frame.sha256);
 
     try {
-      frameFiles = await this.frameArchive.save(framesForModel);
+      if (this.options.archiveFrames !== false) frameFiles = await this.frameArchive.save(framesForModel);
     } catch (error) {
       await this.record({
         timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
@@ -209,7 +222,9 @@ export class AgentLoop {
 
     try {
       let modelCallStartedAt = this.clock();
+      this.options.onModelCallStart?.();
       let response = await this.options.brain.call(context);
+      this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
       modelLatencyMs += Math.max(0, this.clock() - modelCallStartedAt);
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
       inputTokens += response.usage?.input_tokens ?? 0;
@@ -241,10 +256,12 @@ export class AgentLoop {
         const correction = calls.length > 1 ? "Exactly one function call is required per tick." : validationError ?? "Invalid tool call.";
         correctionError = correction;
         modelCallStartedAt = this.clock();
+        this.options.onModelCallStart?.();
         response = await this.options.brain.call(context, {
           previousResponseId: response.id,
           outputs: calls.map((call) => ({ callId: call.callId, error: correction })),
         });
+        this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
         modelLatencyMs += Math.max(0, this.clock() - modelCallStartedAt);
         this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
         inputTokens += response.usage?.input_tokens ?? 0;
@@ -339,7 +356,7 @@ export class AgentLoop {
   }
 
   private async record(entry: DecisionEntry, reason: string): Promise<void> {
-    await this.options.decisions.append(entry);
+    await this.options.decisions.append({ ...entry, ...this.options.decisionMetadata?.() });
     const latestFrame = this.options.frames.latest(1)[0];
     this.options.overlay.update({
       bet: this.overlayBet(this.clock()),
@@ -390,7 +407,9 @@ export class AgentLoop {
   ): Promise<void> {
     const startedAt = this.clock();
     try {
+      this.options.onModelCallStart?.();
       const response = await this.options.brain.call(context);
+      this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
       const latencyMs = Math.max(0, this.clock() - startedAt);
       this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
       const decision = resolutionConfirmation(response);
