@@ -6,3 +6,6 @@ dist/
 coverage/
 broll/
 eval/runs/
+demo.mp4
+demo-final.mp4
+*.edit-plan.json
