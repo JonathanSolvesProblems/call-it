@@ -45,6 +45,19 @@ describe("chess outcome mapping", () => {
     expect(mapOutcomeToResults("Lose", "Who wins?", nameGame)).toBeNull();
   });
 
+  it("keeps an exact player match despite a misspelled extra name word", () => {
+    const game: ChessGame = { ...nameGame, white: "GenivanTruthfulPrince", whiteName: "Genivan Genkeswaran" };
+    expect(mapOutcomeToResults("Geniyan Genkeswaran wins", "Who wins?", game)).toEqual(new Set(["white"]));
+  });
+
+  it("tolerates small spelling errors in usernames and display-name words only for one player", () => {
+    const kamillaGame: ChessGame = { ...nameGame, black: "callmebyyourname06", blackName: "Kamilla Rubinshtein" };
+    expect(mapOutcomeToResults("Kamila Rubinshein", "Who wins?", kamillaGame)).toEqual(new Set(["black"]));
+    const ambiguousGame: ChessGame = { ...nameGame, white: "Alphaa", whiteName: null, black: "Alphab", blackName: null };
+    expect(mapOutcomeToResults("Alpha wins", "Who wins?", ambiguousGame)).toBeNull();
+    expect(mapOutcomeToResults("Magnus Carlsen", "Who wins?", kamillaGame)).toBeNull();
+  });
+
   it("matches a bet opened up to 300 seconds before the game, but an active previous game wins", () => {
     const openingTime = Date.parse(nameGame.startedAt) - 299_000;
     expect(matchGameForBet(openingTime, [nameGame])).toBe(nameGame);
@@ -61,11 +74,31 @@ describe("chess outcome mapping", () => {
     await mkdir(runDir);
     const opened = { iso: "2026-01-01T00:00:20.000Z", vodOffsetSeconds: 20 };
     await writeFile(join(runDir, "run.json"), JSON.stringify({ vod: { vodId: "early" }, fromSeconds: 0, toSeconds: 3600 }));
-    await writeFile(join(runDir, "bets.json"), JSON.stringify([{ question: "Who wins?", outcomes: ["Anna", "Jan", "Draw"], openedAt: opened, endedAt: { iso: "2026-01-01T00:09:49.000Z", vodOffsetSeconds: 589 }, ended: { type: "resolved", outcomeIndex: 0, outcome: "Anna" } }]));
+    await writeFile(join(runDir, "bets.json"), JSON.stringify([{ question: "Who wins?", outcomes: ["Mystery Player", "Nobody"], openedAt: opened, endedAt: { iso: "2026-01-01T00:09:49.000Z", vodOffsetSeconds: 589 }, ended: { type: "resolved", outcomeIndex: 0, outcome: "Mystery Player" } }]));
     const games = join(root, "games.json");
     await writeFile(games, JSON.stringify([nameGame]));
     const result = await gradeRun(runDir, games, resultDir);
     expect(result.bets[0]).toMatchObject({ status: "incorrect", reason: "paid out before the game ended" });
+    expect(result.graderVersion).toBe("2026-10-31b");
+  });
+
+  it("marks a payout before the matched game's start incorrect before checking outcome names", async () => {
+    const root = await mkdtemp(join(tmpdir(), "callit-grade-prestart-payout-"));
+    directories.push(root);
+    const runDir = join(root, "fixture-vod");
+    const resultDir = join(root, "results");
+    await mkdir(runDir);
+    await writeFile(join(runDir, "run.json"), JSON.stringify({ vod: { vodId: "prestart" }, fromSeconds: 0, toSeconds: 3600 }));
+    await writeFile(join(runDir, "bets.json"), JSON.stringify([{
+      question: "Who wins?", outcomes: ["Mystery Player", "Nobody"],
+      openedAt: { iso: "2026-01-01T00:00:09.000Z", vodOffsetSeconds: 9 },
+      endedAt: { iso: "2026-01-01T00:00:09.500Z", vodOffsetSeconds: 9.5 },
+      ended: { type: "resolved", outcomeIndex: 0, outcome: "Mystery Player" },
+    }]));
+    const games = join(root, "games.json");
+    await writeFile(games, JSON.stringify([nameGame]));
+    const result = await gradeRun(runDir, games, resultDir);
+    expect(result.bets[0]).toMatchObject({ status: "incorrect", reason: "paid out before the game ended", gameUrl: nameGame.url });
   });
 });
 
@@ -90,6 +123,7 @@ describe("chess result grader", () => {
     await writeFile(games, await readFile(join(process.cwd(), "tests", "fixtures", "chess-games.json")));
     const result = await gradeRun(runDir, games, resultDir);
     expect(result).toMatchObject({ betsOpened: 6, vodHours: 1, graded: 3, matchedRecord: 2, didNotMatch: 1, refunded: 1, ungraded: 2 });
+    expect(result.graderVersion).toBe("2026-10-31b");
     expect(result.ungradedReasons).toEqual({ "outcomes do not map to streamer win, opponent win, or draw": 1, "no game in progress": 1 });
     expect(result.bets.map((bet) => bet.status)).toEqual(["correct", "incorrect", "refunded", "correct", "ungraded", "ungraded"]);
     expect(result.bets[3]?.predictedResults).toEqual(["white", "draw"]);

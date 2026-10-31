@@ -23,6 +23,11 @@ function response(output: Response["output"] = []): Response {
 }
 
 describe("agent Responses API request", () => {
+  it("reminds the model not to reopen a round that ended against the same players", () => {
+    expect(SYSTEM_PROMPT).toContain("Before opening, compare the names on screen with the last bet in recent decisions.");
+    expect(SYSTEM_PROMPT).toContain("wait until different names or a fresh clock with no moves played appear.");
+  });
+
   it("uses strict required tools, image detail, defaults, and low reasoning for GPT-5", async () => {
     const requests: unknown[] = [];
     const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;

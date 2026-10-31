@@ -564,6 +564,43 @@ I screenshotted overlay:demo at each step. Both new screens work. Two visual fix
 No logic changes. Check with npm run overlay:demo, run typecheck and tests, commit.
 ```
 
+## Held-out result: grader fixes and stale bets (2026-10-31)
+
+```
+Held-out replay of Anna Cramling's VOD 2893451280 (2.42 h, 13 games, never used for tuning),
+eval/results/2893451280-heldout/: 22 bets, 7 graded, 7 matched the record, 0 wrong,
+8 refunded, 7 ungraded. The second look stepped in 11 times out of 18 proposals: it
+corrected 5 wrong winners and rejected 6 payouts that used another game's result. All 11
+were right.
+
+Checking every bet by hand found three grader problems. Fix them in eval/grade-lib.ts:
+
+1. Check timing before names. Two bets opened after a game had ended and paid out before
+   the next game started; they show as "ungraded" because their names do not match the
+   next game. Run the "paid out before the game ended" check (resolved more than 10 s
+   before the matched game's endedAt, or before its startedAt) before outcome mapping, so
+   they count as incorrect. This makes the number stricter.
+2. One exact match is enough. "Geniyan Genkeswaran" (record: Genivan Genkeswaran) is
+   ungraded because "geniyan" is an unknown word, though "genkeswaran" matches exactly. If
+   an outcome matches exactly one player through any alias, extra unknown words (titles,
+   misspellings) do not make it unmappable. It is unmappable only when it matches both
+   players, or matches neither and names someone.
+3. Small spelling tolerance. "Kamila Rubinshein" (record: Kamilla Rubinshtein) matches
+   nothing. A word of 5 or more letters within edit distance 2 of a player's username or a
+   display-name word counts as a match, only when it matches exactly one player.
+4. Write "graderVersion": "2026-10-31b" into each result JSON.
+Tests for each, using these real names.
+
+And one product fix, the main cause of the 10 refunds: Call It opens a bet on the previous
+game's final screen, named after the last opponent, then has to refund it. Append to the
+"Between rounds" paragraph of SYSTEM_PROMPT:
+   Before opening, compare the names on screen with the last bet in the recent decisions.
+   If they are the same players as a bet that has already ended, that round is over: wait
+   until different names or a fresh clock with no moves played appear.
+
+Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

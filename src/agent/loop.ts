@@ -139,12 +139,13 @@ export class AgentLoop {
       await this.stopForModelBudget(tickStartedAt, frameHashes, frameFiles);
       return;
     }
+    const deadlineBet = this.options.executor.getAgentBetContext(tickStartedAt).bet;
     const deadline = await this.options.executor.checkDeadlines(tickStartedAt, this.maxBetSeconds, Boolean(this.pendingResolution));
     if (deadline) {
       if (deadline === "timeout") this.clearPendingResolution();
       await this.record({
         timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
-        tool: deadline, arguments: {}, guardResult: "accepted: automatic bet deadline", latencyMs: 0, inputTokens: 0, outputTokens: 0,
+        tool: deadline, arguments: deadlineBet ? { question: deadlineBet.question } : {}, guardResult: "accepted: automatic bet deadline", latencyMs: 0, inputTokens: 0, outputTokens: 0,
       }, deadline === "timeout" ? "Bet timed out and was refunded." : "Bet window ended and was locked.");
       return;
     }
@@ -347,7 +348,8 @@ export class AgentLoop {
         } else {
           try {
             const moment = await this.execute(action, this.clock());
-            if (moment) args = { ...action.arguments, moment };
+            const actionArgs = action.tool === "cancel_bet" ? { ...action.arguments, question: context.bet?.question } : action.arguments;
+            args = moment ? { ...actionArgs, moment } : actionArgs;
           } catch (error) {
             guardResult = `accepted; execution failed: ${errorMessage(error)}`;
           }
@@ -507,7 +509,7 @@ export class AgentLoop {
         await this.record({
           timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
           tool: "confirm_resolution",
-          arguments: { outcome_index: confirmedOutcomeIndex, outcome: confirmedOutcome, evidence: pending.evidence, reason: decision.reason, moment: recordedMoment ?? null },
+          arguments: { question: context.bet.question, outcome_index: confirmedOutcomeIndex, outcome: confirmedOutcome, evidence: pending.evidence, reason: decision.reason, moment: recordedMoment ?? null },
           guardResult, latencyMs, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0,
         }, decision.reason);
         return;

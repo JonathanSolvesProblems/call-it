@@ -32,6 +32,7 @@ interface GradedBet {
 }
 
 export interface GradeSummary {
+  graderVersion: "2026-10-31b";
   vodId: string;
   memoryOff: boolean;
   vodHours: number;
@@ -69,6 +70,12 @@ export async function gradeRun(runDirectoryArg: string, gamesPathArg: string, re
     if (bet.ended?.type === "cancelled" || bet.ended?.type === "timeout") {
       return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "refunded", reason: bet.ended.type === "cancelled" ? bet.ended.reason : "timeout" };
     }
+    if (bet.ended?.type === "resolved" && bet.endedAt) {
+      const settledAtMs = Date.parse(bet.endedAt.iso);
+      if (settledAtMs < Date.parse(game.startedAt) || Date.parse(game.endedAt) - settledAtMs > 10_000) {
+        return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "incorrect", actualResult: game.result, reason: "paid out before the game ended" };
+      }
+    }
     const outcomes = bet.outcomes.map((outcome) => mapOutcomeToResults(outcome, bet.question, game));
     if (outcomes.some((result) => result === null)) {
       return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "outcomes do not map to streamer win, opponent win, or draw" };
@@ -79,15 +86,13 @@ export async function gradeRun(runDirectoryArg: string, gamesPathArg: string, re
     const predictedResults = outcomes[bet.ended.outcomeIndex];
     if (!predictedResults) return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "resolved outcome index is invalid" };
     const actualResult = game.result;
-    if (bet.endedAt && Date.parse(game.endedAt) - Date.parse(bet.endedAt.iso) > 10_000) {
-      return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "incorrect", predictedResults: [...predictedResults], actualResult, reason: "paid out before the game ended" };
-    }
     const status = predictedResults.has(actualResult) ? "correct" : "incorrect";
     return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status, predictedResults: [...predictedResults], actualResult };
   });
   const ungradedReasons: Record<string, number> = {};
   for (const bet of gradedBets) if (bet.status === "ungraded") ungradedReasons[bet.reason ?? "unknown"] = (ungradedReasons[bet.reason ?? "unknown"] ?? 0) + 1;
   const result: GradeSummary = {
+    graderVersion: "2026-10-31b",
     vodId: run.vod?.vodId ?? basename(runDirectory).replace(/-nomemory$/, ""),
     memoryOff: run.memoryOff ?? basename(runDirectory).endsWith("-nomemory"),
     vodHours: durationHours,
@@ -122,7 +127,9 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
   const normalized = normalize(outcome);
   const words = normalized.split(" ").filter(Boolean);
   const players = playerAliases(game);
-  const matched = (Object.keys(players) as Array<"white" | "black">).filter((color) => players[color].some((alias) => hasPhrase(normalized, alias)));
+  const exactMatched = (Object.keys(players) as Array<"white" | "black">).filter((color) => players[color].some((alias) => hasPhrase(normalized, alias)));
+  if (exactMatched.length > 1) return null;
+  let matched = exactMatched;
   if (matched.length > 1) return null;
 
   const reserved = new Set([
@@ -132,11 +139,15 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
   const knownNameWords = new Set(Object.values(players).flatMap((aliases) => aliases.flatMap((alias) => alias.split(" "))));
   const resultVerbIndex = words.findIndex((word) => ["win", "wins", "won", "winning", "lose", "loses", "loss", "lost", "losing"].includes(word));
   const nameCandidates = resultVerbIndex < 0 ? words : words.slice(0, resultVerbIndex);
-  if (nameCandidates.some((word) => word.length >= 3 && !reserved.has(word) && !knownNameWords.has(word))) return null;
-  if ([...outcome.matchAll(/\b[A-Z][a-zA-Z]{2,}\b/g)].some(([word]) => {
-    const normalizedWord = normalize(word);
-    return !reserved.has(normalizedWord) && !knownNameWords.has(normalizedWord);
-  })) return null;
+  if (matched.length === 0) matched = fuzzyPlayerMatches(nameCandidates, players);
+  if (matched.length > 1) return null;
+  if (matched.length === 0) {
+    if (nameCandidates.some((word) => word.length >= 3 && !reserved.has(word) && !knownNameWords.has(word))) return null;
+    if ([...outcome.matchAll(/\b[A-Z][a-zA-Z]{2,}\b/g)].some(([word]) => {
+      const normalizedWord = normalize(word);
+      return !reserved.has(normalizedWord) && !knownNameWords.has(normalizedWord);
+    })) return null;
+  }
 
   if (words.includes("yes") || words.includes("no")) {
     if (words.length !== 1) return null;
@@ -211,6 +222,35 @@ function playerAliases(game: ChessGame): Record<"white" | "black", string[]> {
     return [...values];
   };
   return { white: aliases(game.white, game.whiteName), black: aliases(game.black, game.blackName) };
+}
+
+function fuzzyPlayerMatches(words: string[], players: Record<"white" | "black", string[]>): Array<"white" | "black"> {
+  const matches = new Set<"white" | "black">();
+  for (const word of words) {
+    if (word.length < 5) continue;
+    for (const color of ["white", "black"] as const) {
+      const aliases = players[color].flatMap((alias) => alias.split(" ")).filter((alias) => alias.length >= 5);
+      if (aliases.some((alias) => editDistanceAtMostTwo(word, alias))) matches.add(color);
+    }
+  }
+  return [...matches];
+}
+
+function editDistanceAtMostTwo(left: string, right: string): boolean {
+  if (Math.abs(left.length - right.length) > 2) return false;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    for (let column = 1; column <= right.length; column += 1) {
+      current[column] = Math.min(
+        current[column - 1]! + 1,
+        previous[column]! + 1,
+        previous[column - 1]! + (left[row - 1] === right[column - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[right.length]! <= 2;
 }
 
 function normalize(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
