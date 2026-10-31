@@ -636,9 +636,28 @@ response. If is_sent is false, log the drop reason and treat it as not sent.
 Tests for 4 and the chat drop. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
-## Later slices
+## Setup check (2026-10-31, optional)
 
-4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.
-5. Native mode against the Twitch CLI mock API.
-6. Replay mode and the chess grader on real VODs.
-7. Overlay polish, README from a clean clone.
+```
+For the "easy to use" judging criterion: add `npm run check`, a first-run check a new
+streamer runs before going live. No model generations (it must cost nothing). It prints one
+line per check with OK or a plain fix:
+
+1. .env: TWITCH_CLIENT_ID and OPENAI_API_KEY present; numeric settings valid.
+2. Twitch: the saved login works (or say "run npm run live once to log in"), print the
+   channel name and that chat mode will be used.
+3. OpenAI: the key works and both OPENAI_MODEL and OPENAI_RESOLVE_MODEL are available
+   (models.retrieve, not a generation).
+4. OBS: WebSocket reachable with the password, OBS_SOURCE_NAME exists in the current scene
+   (if set), and a screenshot of it succeeds. Warn if the overlay browser source is missing
+   or points somewhere other than http://127.0.0.1:<OVERLAY_PORT>/overlay.
+5. Exit code 0 when everything is OK, 1 otherwise.
+
+Add it to the README setup section as the step before npm run live. Tests with fakes for
+each check. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
+## Not built
+
+- Native Channel Points Predictions for Affiliate channels (dropped 2026-10-31; see SPEC.md).
+- Per-channel memory of which moments chat bets on most.
