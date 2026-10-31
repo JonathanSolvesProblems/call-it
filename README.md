@@ -2,6 +2,12 @@
 
 Call It watches your game through OBS and runs prediction bets in your Twitch chat: it opens them, locks them, settles them and clips the moment.
 
+## Demo
+
+- Demo video: added on submission day (YouTube).
+- The live stream it was filmed on, with chat replay: [twitch.tv/videos/2916119628](https://www.twitch.tv/videos/2916119628) (my demo channel, jonathansolvesproblems; the viewer betting is my main account).
+- A clip Call It made by itself at a payout: [The Bellows](https://clips.twitch.tv/SoftSpeedyPassionfruitPunchTrees-mnfpV8CfdPDOgDs2).
+
 ## Who it is for
 
 Call It is for small streamers who do not have moderators to run bets while they play. Twitch Predictions require Affiliate or Partner status, so many small channels cannot use them. Call It runs the same kind of prediction in chat with points that have no cash value.

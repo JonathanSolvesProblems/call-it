@@ -86,6 +86,8 @@ gallery, Devpost-wide project search, and the Twitch Predictions guide.
 - The final shot (the thing the verb produces, or a live success landing in field 5's system, never a number being revealed): live on Twitch, a bet the agent opened on its own resolves the second the moment ends: the payout message in chat, the clip link posted under it, and my hands still on the keyboard.
 - The first live end-to-end success, on real data, with the sponsor's model in the loop, by (date, day 3 at the latest): **Oct 28, 2026**: a real stream on my channel, a bet opened, locked and resolved by the model in chat mode, with a clip posted.
 
+- **Demo filmed 2026-10-31.** Live on the demo channel: three bosses settled with clips and markers, zero wrong payouts, one safe refund and one streamer cancel. The video's final shot is the Slag Golem winner card landing on stream (checked, paid, clipped), then a 16 s reel from the stream. Cut length 2:47 under the 3:00 cap.
+
 ## Verdict
 
 **Verdict:** GO (2026-10-25).
