@@ -90,6 +90,10 @@ Live VOD: https://www.twitch.tv/videos/2916119628
 2:28 Bonus: from the stream
 ```
 
+## Image gallery
+
+Upload `preview/1-hero.png` through `preview/8-codex.png` in that order. One caption per image is in `preview/captions.md`; copy the block contents only.
+
 ## Codex session ID
 
 ```

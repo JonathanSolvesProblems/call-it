@@ -636,7 +636,7 @@ response. If is_sent is false, log the drop reason and treat it as not sent.
 Tests for 4 and the chat drop. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
-## Setup check (2026-10-31, optional)
+## Setup check (2026-10-31, optional, not sent)
 
 ```
 For the "easy to use" judging criterion: add `npm run check`, a first-run check a new
@@ -657,7 +657,7 @@ Add it to the README setup section as the step before npm run live. Tests with f
 each check. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
-## Honest payout numbers (2026-10-31)
+## Honest payout numbers (2026-10-31, not sent)
 
 ```
 On the live stream the only bettor (arlayton9, 300 on "Bellows down") won, and the winner
@@ -674,6 +674,8 @@ Tests for both lines. Run typecheck and tests, commit. Also commit CODEX_PROMPTS
 ```
 
 ## Not built
+
+Prompts marked "not sent" above were drafted but never run in Codex before the deadline.
 
 - Native Channel Points Predictions for Affiliate channels (dropped 2026-10-31; see SPEC.md).
 - Per-channel memory of which moments chat bets on most.

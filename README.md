@@ -80,6 +80,8 @@ npm run grade -- <runDir> <games.json>
 npm run eval:confirm -- 5
 ```
 
+Checking the numbers costs nothing: `npm run grade` has no model in it, and [eval/results/](eval/results/) holds the run files it grades. Only `replay` and `eval:confirm` call OpenAI, on your own key.
+
 Replay uses the same prompts, tools, guards, and second look with a fake clock. Its chat and moment recorders only log and never call Twitch. The grader has no model and makes no network calls. It compares game-result bets with the supplied chess.com game records. Confirmation evaluation uses the configured resolve model and the cases in `eval/confirm-cases/`.
 
 ## Results
