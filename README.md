@@ -9,7 +9,7 @@ Call It is for small streamers who do not have moderators to run bets while they
 ## How it works
 
 1. [ObsFrameSource](src/frames/obs-frame-source.ts) captures a JPEG from OBS every 2 seconds. It uses `OBS_SOURCE_NAME` when set, otherwise it captures the program scene.
-2. Every 4 seconds, [AgentLoop](src/agent/loop.ts) sends the newest 3 frames, active bet, recent decisions, and channel memory to the OpenAI Responses API. `OPENAI_MODEL` defaults to `gpt-5.4-mini`. The model must choose one tool: `wait`, `open_bet`, `lock_bet`, `resolve_bet`, or `cancel_bet`.
+2. Every 4 seconds, [AgentLoop](src/agent/loop.ts) sends the newest 3 frames, the active bet, and recent decisions to the OpenAI Responses API. `OPENAI_MODEL` defaults to `gpt-5.4-mini`. The model must choose one tool: `wait`, `open_bet`, `lock_bet`, `resolve_bet`, or `cancel_bet`.
 3. [guards.ts](src/agent/guards.ts) enforces limits. It allows one active bet; enforces the minimum gap between bets (except for a boss); limits questions to 90 characters in chat mode, outcomes to 25 characters, outcomes per bet to 2 through 10, and bet windows to 30 through 1,800 seconds; keeps a bet open at least 30 seconds before locking or resolving unless the outcome is already visible; and waits at least 20 seconds before cancellation unless the scene left the moment. It also blocks actions while offline, paused, or in an ad break. A timeout refunds the bet. Invalid tool calls get one correction attempt.
 4. Before paying a proposed result, [AgentBrain](src/agent/brain.ts) makes a second call with `OPENAI_RESOLVE_MODEL` (default `gpt-6.1-sol`). It sees the proposal frames and newer frames, then confirms an outcome or rejects it. A confirmation can correct the first outcome.
 5. [ChatBetService](src/bets/chat-mode.ts) updates balances and announces the result or refund. While the channel is live, [TwitchMomentRecorder](src/twitch/moment-recorder.ts) creates a marker and clip after the payout message, then posts the clip link. [ChatBetLedger](src/bets/chat-ledger.ts) stores the result, clip details, and marker position.
@@ -65,7 +65,7 @@ Replay a folder of one-frame-per-second JPEGs named by VOD offset, with a `vod.j
 
 ```powershell
 npm run replay -- <folder>
-npm run replay -- <folder> --memory off --from 0 --to 600 --max-calls 150
+npm run replay -- <folder> --from 0 --to 600 --max-calls 150
 npm run grade -- <runDir> <games.json>
 npm run eval:confirm -- 5
 ```
@@ -78,7 +78,7 @@ Filled in from `eval/results/` after the held-out run.
 
 ## Limits
 
-This slice supports chat mode. Native Channel Points Predictions for Affiliate channels are future work. Clips and stream markers are attempted only while Twitch reports the channel live. The agent sees pixels and can misread them. The second look reduces payout mistakes, but does not guarantee correctness. The broadcaster or a moderator can use `!callit cancel` to refund an active bet. Live mode defaults to a 600-call cap; force-live also stops after 30 minutes.
+Call It runs bets in chat mode only. Native Channel Points Predictions for Affiliate channels, and a per-channel memory of which moments chat bets on most, are future work. Clips and stream markers are attempted only while Twitch reports the channel live. The agent sees pixels and can misread them. The second look reduces payout mistakes, but does not guarantee correctness. The broadcaster or a moderator can use `!callit cancel` to refund an active bet. Live mode defaults to a 600-call cap; force-live also stops after 30 minutes.
 
 ## How it was built
 
