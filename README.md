@@ -2,6 +2,8 @@
 
 Call It watches your game through OBS and runs prediction bets in your Twitch chat: it opens them, locks them, settles them and clips the moment.
 
+![Live on Twitch: Call It opens a bet on its own and chat bets with !1 or !2](preview/2-live-bet.png)
+
 ## Demo
 
 - Demo video: added on submission day (YouTube).
@@ -13,6 +15,8 @@ Call It watches your game through OBS and runs prediction bets in your Twitch ch
 Call It is for small streamers who do not have moderators to run bets while they play. Twitch Predictions require Affiliate or Partner status, so many small channels cannot use them. Call It runs the same kind of prediction in chat with points that have no cash value.
 
 ## How it works
+
+![Every payout gets a second look: gpt-5.4-mini proposes, gpt-6.1-sol checks the frames](preview/4-second-look.png)
 
 1. [ObsFrameSource](src/frames/obs-frame-source.ts) captures a JPEG from OBS every 2 seconds. It uses `OBS_SOURCE_NAME` when set, otherwise it captures the program scene.
 2. Every 4 seconds, [AgentLoop](src/agent/loop.ts) sends the newest 3 frames, the active bet, and recent decisions to the OpenAI Responses API. `OPENAI_MODEL` defaults to `gpt-5.4-mini`. The model must choose one tool: `wait`, `open_bet`, `lock_bet`, `resolve_bet`, or `cancel_bet`.
@@ -80,6 +84,8 @@ Replay uses the same prompts, tools, guards, and second look with a fake clock. 
 
 ## Results
 
+![10 of 12 payouts matched the chess.com record on a stream it had never seen; 8 refunded](preview/7-results.png)
+
 Measured on real Twitch VODs of Anna Cramling playing chess.com blitz. [eval/grade.ts](eval/grade.ts) grades each game-result payout against chess.com's public game archive. The grader has no model in it.
 
 | | Tuning VOD, before fixes | Held-out VOD |
@@ -100,6 +106,8 @@ Measured on real Twitch VODs of Anna Cramling playing chess.com blitz. [eval/gra
 - Limits of this measurement: one streamer and one site, so the held-out VOD tests unseen games, not an unseen layout (other chess streamers' VODs were subscriber-only). The grader was fixed after seeing the held-out run; the fixes made it stricter on timing and tolerant of misspelled names. The first grade is kept in [grade-before-grader-fix.json](eval/results/2893451280-heldout/grade-before-grader-fix.json) (7 of 7 matched).
 
 Files: [eval/results/2893451280-heldout/](eval/results/2893451280-heldout/) and [eval/results/2912243465-run1/](eval/results/2912243465-run1/), each with the bets, the full decision log and `grade-final.json`.
+
+![The payout lands in chat with a clip link; the agent makes the Twitch calls itself](preview/5-payout.png)
 
 ## Limits
 
