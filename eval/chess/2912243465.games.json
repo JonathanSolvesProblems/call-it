@@ -8,7 +8,9 @@
     "endedAt": "2026-10-27T16:09:52.000Z",
     "streamer": "annacramling",
     "termination": "JanistanTV won by resignation",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Jan Gustafsson"
   },
   {
     "url": "https://www.chess.com/game/live/187430896461",
@@ -19,7 +21,9 @@
     "endedAt": "2026-10-27T16:21:10.000Z",
     "streamer": "annacramling",
     "termination": "Game drawn by timeout vs insufficient material",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Efe Aynaoglu"
   },
   {
     "url": "https://www.chess.com/game/live/187431496261",
@@ -30,7 +34,9 @@
     "endedAt": "2026-10-27T16:31:33.000Z",
     "streamer": "annacramling",
     "termination": "wanyaland won by checkmate",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Harold Wanyama",
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/187432695705",
@@ -41,7 +47,9 @@
     "endedAt": "2026-10-27T16:41:45.000Z",
     "streamer": "annacramling",
     "termination": "Shiraaaaazi won by resignation",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Zachary Calderon",
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/187433296429",
@@ -52,7 +60,9 @@
     "endedAt": "2026-10-27T17:01:04.000Z",
     "streamer": "annacramling",
     "termination": "annacramling won on time",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Alfredo Cecilio Miserendino"
   },
   {
     "url": "https://www.chess.com/game/live/187433896771",
@@ -63,7 +73,9 @@
     "endedAt": "2026-10-27T17:11:02.000Z",
     "streamer": "annacramling",
     "termination": "chessmachine14 won by checkmate",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Ayan Allahverdiyeva",
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/187435095689",
@@ -74,7 +86,9 @@
     "endedAt": "2026-10-27T17:22:06.000Z",
     "streamer": "annacramling",
     "termination": "Tapson67 won by checkmate",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Aliaksandra Tarasenka",
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/187435695935",
@@ -85,7 +99,9 @@
     "endedAt": "2026-10-27T17:34:46.000Z",
     "streamer": "annacramling",
     "termination": "annacramling won on time",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Alejandra Guerrero"
   },
   {
     "url": "https://www.chess.com/game/live/187436296591",
@@ -96,7 +112,9 @@
     "endedAt": "2026-10-27T17:50:57.000Z",
     "streamer": "annacramling",
     "termination": "annacramling won by resignation",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Regina Gamilova",
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/187437495477",
@@ -107,7 +125,9 @@
     "endedAt": "2026-10-27T18:02:11.000Z",
     "streamer": "annacramling",
     "termination": "VladimirSofronie won by resignation",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Vladimir Sofronie"
   },
   {
     "url": "https://www.chess.com/game/live/187438095533",
@@ -118,7 +138,9 @@
     "endedAt": "2026-10-27T18:12:40.000Z",
     "streamer": "annacramling",
     "termination": "Chomiczek786 won on time",
-    "timeControl": "300"
+    "timeControl": "300",
+    "whiteName": "Anna Cramling",
+    "blackName": "Hubert Zieba"
   },
   {
     "url": "https://www.chess.com/game/live/186052900218",
@@ -129,7 +151,9 @@
     "endedAt": "2026-10-27T18:27:08.000Z",
     "streamer": "annacramling",
     "termination": "annacramling won on time",
-    "timeControl": "180"
+    "timeControl": "180",
+    "whiteName": "Anna Cramling",
+    "blackName": null
   },
   {
     "url": "https://www.chess.com/game/live/186053390476",
@@ -140,7 +164,9 @@
     "endedAt": "2026-10-27T18:35:57.000Z",
     "streamer": "annacramling",
     "termination": "QuercusFrainetto won on time",
-    "timeControl": "180"
+    "timeControl": "180",
+    "whiteName": null,
+    "blackName": "Anna Cramling"
   },
   {
     "url": "https://www.chess.com/game/live/186053799808",
@@ -151,6 +177,8 @@
     "endedAt": "2026-10-27T18:42:41.000Z",
     "streamer": "annacramling",
     "termination": "annacramling won by checkmate",
-    "timeControl": "180"
+    "timeControl": "180",
+    "whiteName": null,
+    "blackName": "Anna Cramling"
   }
 ]

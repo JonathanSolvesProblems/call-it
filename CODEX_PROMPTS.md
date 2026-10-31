@@ -326,6 +326,39 @@ official chess.com game records. I will supply the VOD frame folders and the gam
 Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Grader fixes from the first chess replay (2026-10-31)
+
+```
+I ran replay on 12 minutes of a real VOD (Anna Cramling, eval/chess/2912243465.*). The loop
+works: it opened "Who wins Anna Cramling vs Jan Gustafsson?" (outcomes "Anna wins",
+"Jan wins", "Draw"), locked it, and resolved "Jan wins" from the chess.com "Black Won"
+popup, which matches the record. The full 2h48m run is going now. Two grader bugs:
+
+1. The board shows real names, not usernames. JanistanTV appears as "GM Jan Gustafsson".
+   "Jan wins" matches neither username, falls through to the bare "wins" rule, and is graded
+   as the streamer winning. That flips results. Fix:
+   - games.json now has optional "whiteName" and "blackName" (the chess.com profile name, or
+     null). A player is matched by username, by full display name, or by any single word of
+     the display name with 3 or more letters ("Anna", "Jan"). Case-insensitive, whole words.
+     If one outcome matches both players, it is unmappable.
+   - Remove the fallback that maps a bare "win" or "lose" with no player, "streamer",
+     "opponent" or colour to the streamer. Use the question instead: if the outcomes are
+     Yes / No style, find the player and the verb (win, lose, draw) in the question.
+     "Yes" maps to that result. "No" maps to "not that result" and is correct when the
+     actual result is anything else. Keep predicted results as sets so this works.
+   - An outcome that names someone who is neither player is unmappable.
+2. Bets opened on the pairing screen. The model opened a bet 8 s before the record's
+   startedAt. A bet opened up to 60 s before a game's startedAt belongs to that game, as long
+   as it was not opened during the previous game.
+
+Tests: "Jan wins" and "Jan Gustafsson wins" map to the opponent; "Anna wins" to the streamer;
+"Will Anna win?" with Yes / No, both ways, including a draw; an outcome naming a third
+person is ungraded; a bet opened 30 s before startedAt matches that game.
+
+Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md and
+eval/chess/2912243465.games.json (I added the names).
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

@@ -9,6 +9,8 @@ export interface ChessGame {
   startedAt: string;
   endedAt: string;
   streamer: string;
+  whiteName?: string | null;
+  blackName?: string | null;
 }
 
 export interface BetRecord {
@@ -23,7 +25,7 @@ interface GradedBet {
   openedAt: string;
   gameUrl?: string;
   status: "correct" | "incorrect" | "refunded" | "ungraded";
-  predictedResult?: string;
+  predictedResults?: Array<ChessGame["result"]>;
   actualResult?: string;
   reason?: string;
 }
@@ -61,23 +63,23 @@ export async function gradeRun(runDirectoryArg: string, gamesPathArg: string, re
   const durationHours = Math.max(0, toSeconds - fromSeconds) / 3600;
   const gradedBets: GradedBet[] = bets.map((bet) => {
     const openedAtMs = Date.parse(bet.openedAt.iso);
-    const game = games.find((candidate) => Date.parse(candidate.startedAt) <= openedAtMs && openedAtMs <= Date.parse(candidate.endedAt));
+    const game = matchGameForBet(openedAtMs, games);
     if (!game) return { question: bet.question, openedAt: bet.openedAt.iso, status: "ungraded", reason: "no game in progress" };
     if (bet.ended?.type === "cancelled" || bet.ended?.type === "timeout") {
       return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "refunded", reason: bet.ended.type === "cancelled" ? bet.ended.reason : "timeout" };
     }
-    const outcomes = bet.outcomes.map((outcome) => outcomeResult(outcome, game));
+    const outcomes = bet.outcomes.map((outcome) => mapOutcomeToResults(outcome, bet.question, game));
     if (outcomes.some((result) => result === null)) {
       return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "outcomes do not map to streamer win, opponent win, or draw" };
     }
     if (bet.ended?.type !== "resolved") {
       return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "bet has no resolved outcome" };
     }
-    const predictedResult = outcomes[bet.ended.outcomeIndex];
-    if (!predictedResult) return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "resolved outcome index is invalid" };
-    const actualResult = resultForStreamer(game.result, game);
-    const status = predictedResult === actualResult ? "correct" : "incorrect";
-    return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status, predictedResult, actualResult };
+    const predictedResults = outcomes[bet.ended.outcomeIndex];
+    if (!predictedResults) return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status: "ungraded", reason: "resolved outcome index is invalid" };
+    const actualResult = game.result;
+    const status = predictedResults.has(actualResult) ? "correct" : "incorrect";
+    return { question: bet.question, openedAt: bet.openedAt.iso, gameUrl: game.url, status, predictedResults: [...predictedResults], actualResult };
   });
   const ungradedReasons: Record<string, number> = {};
   for (const bet of gradedBets) if (bet.status === "ungraded") ungradedReasons[bet.reason ?? "unknown"] = (ungradedReasons[bet.reason ?? "unknown"] ?? 0) + 1;
@@ -102,37 +104,103 @@ export async function gradeRun(runDirectoryArg: string, gamesPathArg: string, re
   return result;
 }
 
-function outcomeResult(outcome: string, game: ChessGame): "streamer win" | "opponent win" | "draw" | null {
-  const normalized = outcome.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  if (/\b(draw|stalemate|tie)\b/.test(normalized)) return "draw";
-  const streamer = game.streamer.toLowerCase();
-  const streamerIsWhite = game.white.toLowerCase() === streamer;
-  const streamerIsBlack = game.black.toLowerCase() === streamer;
-  if (!streamerIsWhite && !streamerIsBlack) return null;
-  const opponent = streamerIsWhite ? game.black.toLowerCase() : game.white.toLowerCase();
-  if (containsName(normalized, streamer)) return /\b(lose|loses|lost|losing)\b/.test(normalized) ? "opponent win" : "streamer win";
-  if (containsName(normalized, opponent)) return /\b(lose|loses|lost|losing)\b/.test(normalized) ? "streamer win" : "opponent win";
-  if (/\b(streamer|player)\b/.test(normalized)) {
-    if (/\b(lose|loses|lost|losing)\b/.test(normalized)) return "opponent win";
-    if (/\b(win|wins|won|winning)\b/.test(normalized)) return "streamer win";
-  }
-  if (/\b(opponent|other player)\b/.test(normalized)) return /\b(lose|loses|lost|losing)\b/.test(normalized) ? "streamer win" : "opponent win";
-  if (/\b(white|black)\b/.test(normalized)) {
-    const winnerColor = /\bwhite\b/.test(normalized) ? "white" : "black";
-    return (winnerColor === "white") === streamerIsWhite ? "streamer win" : "opponent win";
-  }
-  if (/\b(win|wins|won|winning)\b/.test(normalized)) return "streamer win";
-  if (/\b(lose|loses|lost|losing)\b/.test(normalized)) return "opponent win";
-  return null;
+export function matchGameForBet(openedAtMs: number, games: ChessGame[]): ChessGame | undefined {
+  const ordered = [...games].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
+  const inProgress = ordered.filter((game) => Date.parse(game.startedAt) <= openedAtMs && openedAtMs <= Date.parse(game.endedAt));
+  if (inProgress.length) return inProgress.at(-1);
+  return ordered.find((game) => {
+    const secondsBeforeStart = (Date.parse(game.startedAt) - openedAtMs) / 1000;
+    return secondsBeforeStart > 0 && secondsBeforeStart <= 60;
+  });
 }
 
-function resultForStreamer(result: ChessGame["result"], game: ChessGame): "streamer win" | "opponent win" | "draw" {
-  if (result === "draw") return "draw";
-  const winnerIsWhite = result === "white";
-  return winnerIsWhite === (game.white.toLowerCase() === game.streamer.toLowerCase()) ? "streamer win" : "opponent win";
+export function mapOutcomeToResults(outcome: string, question: string, game: ChessGame): Set<ChessGame["result"]> | null {
+  const normalized = normalize(outcome);
+  const words = normalized.split(" ").filter(Boolean);
+  const players = playerAliases(game);
+  const matched = (Object.keys(players) as Array<"white" | "black">).filter((color) => players[color].some((alias) => hasPhrase(normalized, alias)));
+  if (matched.length > 1) return null;
+
+  const reserved = new Set([
+    "yes", "no", "draw", "stalemate", "tie", "win", "wins", "won", "winning", "lose", "loses", "lost", "losing",
+    "streamer", "player", "opponent", "other", "white", "black", "the", "a", "an", "vs", "versus", "and", "will",
+  ]);
+  const knownNameWords = new Set(Object.values(players).flatMap((aliases) => aliases.flatMap((alias) => alias.split(" "))));
+  const resultVerbIndex = words.findIndex((word) => ["win", "wins", "won", "winning", "lose", "loses", "lost", "losing"].includes(word));
+  const nameCandidates = resultVerbIndex < 0 ? words : words.slice(0, resultVerbIndex);
+  if (nameCandidates.some((word) => word.length >= 3 && !reserved.has(word) && !knownNameWords.has(word))) return null;
+  if ([...outcome.matchAll(/\b[A-Z][a-zA-Z]{2,}\b/g)].some(([word]) => {
+    const normalizedWord = normalize(word);
+    return !reserved.has(normalizedWord) && !knownNameWords.has(normalizedWord);
+  })) return null;
+
+  if (words.includes("yes") || words.includes("no")) {
+    if (words.length !== 1) return null;
+    const assertion = questionResult(question, game, players);
+    if (!assertion) return null;
+    return words[0] === "yes" ? assertion : new Set(( ["white", "black", "draw"] as const).filter((result) => !assertion.has(result)));
+  }
+
+  if (words.includes("draw") || words.includes("stalemate") || words.includes("tie")) return new Set(["draw"]);
+  let winnerColor = matched[0];
+  if (words.includes("streamer") || words.includes("player")) {
+    if (winnerColor) return null;
+    winnerColor = game.white.toLowerCase() === game.streamer.toLowerCase() ? "white" : game.black.toLowerCase() === game.streamer.toLowerCase() ? "black" : undefined;
+  } else if (words.includes("opponent") || words.includes("other")) {
+    if (winnerColor) return null;
+    winnerColor = game.white.toLowerCase() === game.streamer.toLowerCase() ? "black" : game.black.toLowerCase() === game.streamer.toLowerCase() ? "white" : undefined;
+  }
+  const hasLose = words.some((word) => ["lose", "loses", "lost", "losing"].includes(word));
+  const hasWin = words.some((word) => ["win", "wins", "won", "winning"].includes(word));
+  if (hasLose && hasWin) return null;
+  if (hasLose && winnerColor) winnerColor = winnerColor === "white" ? "black" : "white";
+  if (!winnerColor && (words.includes("white") || words.includes("black"))) {
+    if (words.includes("white") && words.includes("black")) return null;
+    const namedColor = words.includes("white") ? "white" : "black";
+    winnerColor = hasLose ? namedColor === "white" ? "black" : "white" : namedColor;
+  }
+  return winnerColor ? new Set([winnerColor]) : null;
 }
 
-function containsName(text: string, name: string): boolean {
-  const normalizedName = name.replace(/[^a-z0-9]+/g, " ").trim();
-  return Boolean(normalizedName) && ` ${text} `.includes(` ${normalizedName} `);
+function questionResult(question: string, game: ChessGame, players: Record<"white" | "black", string[]>): Set<ChessGame["result"]> | null {
+  const normalized = normalize(question);
+  const drawMatch = /\b(draw|stalemate|tie)\b/.exec(normalized);
+  const verbMatch = /\b(win|wins|won|winning|lose|loses|lost|losing)\b/.exec(normalized);
+  if (drawMatch && verbMatch) return null;
+  const match = drawMatch && (!verbMatch || drawMatch.index < verbMatch.index) ? drawMatch : verbMatch;
+  if (!match || match.index === undefined) return null;
+  const subjectText = normalized.slice(0, match.index);
+  const colors = (Object.keys(players) as Array<"white" | "black">).filter((color) => players[color].some((alias) => hasPhrase(subjectText, alias)));
+  if (colors.length > 1) return null;
+  let subjectColor = colors[0];
+  const subjectWords = subjectText.split(" ");
+  if (!subjectColor && (subjectWords.includes("streamer") || subjectWords.includes("player"))) {
+    subjectColor = game.white.toLowerCase() === game.streamer.toLowerCase() ? "white" : game.black.toLowerCase() === game.streamer.toLowerCase() ? "black" : undefined;
+  }
+  if (!subjectColor && (subjectWords.includes("opponent") || subjectWords.includes("other"))) {
+    subjectColor = game.white.toLowerCase() === game.streamer.toLowerCase() ? "black" : game.black.toLowerCase() === game.streamer.toLowerCase() ? "white" : undefined;
+  }
+  if (match[0] && /draw|stalemate|tie/.test(match[0])) return new Set(["draw"]);
+  if (!subjectColor) return null;
+  const isLoss = /lose|loses|lost|losing/.test(match[0]!);
+  const resultColor = isLoss ? subjectColor === "white" ? "black" : "white" : subjectColor;
+  return new Set([resultColor]);
 }
+
+function playerAliases(game: ChessGame): Record<"white" | "black", string[]> {
+  const aliases = (username: string, displayName?: string | null) => {
+    const values = new Set<string>();
+    const normalizedUsername = normalize(username);
+    if (normalizedUsername) values.add(normalizedUsername);
+    if (displayName) {
+      const normalizedDisplayName = normalize(displayName);
+      if (normalizedDisplayName) values.add(normalizedDisplayName);
+      for (const word of normalizedDisplayName.split(" ")) if (word.length >= 3) values.add(word);
+    }
+    return [...values];
+  };
+  return { white: aliases(game.white, game.whiteName), black: aliases(game.black, game.blackName) };
+}
+
+function normalize(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+function hasPhrase(text: string, phrase: string): boolean { return Boolean(phrase) && ` ${text} `.includes(` ${phrase} `); }
