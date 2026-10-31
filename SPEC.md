@@ -19,8 +19,9 @@ Chosen at startup from Get Users `broadcaster_type`:
   with 1,000 points, balances persist across streams (`!points` shows yours). Winners split
   the losing pool in proportion to their stake, like Twitch Predictions. Refunds return stakes.
 - **native mode** (`affiliate` or `partner`): real Channel Points Predictions through Helix
-  Create Prediction and End Prediction (LOCKED, RESOLVED, CANCELED). Tested against the
-  Twitch CLI mock API; say so wherever it is described.
+  Create Prediction and End Prediction (LOCKED, RESOLVED, CANCELED). **Dropped 2026-10-31**:
+  my channel is not Affiliate, so it could only run on the Twitch CLI mock. Not built, not
+  claimed; the README lists it as future work.
 
 Both modes post a Twitch clip (Create Clip) and a stream marker (Create Stream Marker) when a
 bet resolves, and post the clip URL in chat.
