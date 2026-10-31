@@ -80,14 +80,14 @@ Repo: https://github.com/JonathanSolvesProblems/call-it
 Live VOD: https://www.twitch.tv/videos/2916119628
 
 0:00 Why
-0:28 Live on Twitch: a bet opens on its own
-1:08 The second look, payout, clip
-1:17 When it can't see the result, it refunds
-1:30 Graded against chess.com
-1:50 Built with Codex
-2:20 Setup
-2:25 Call it
-2:28 Bonus: from the stream
+0:33 Live on Twitch: a bet opens on its own
+0:56 The second look, payout, clip
+1:12 When it can't see the result, it refunds
+1:24 Graded against chess.com
+1:46 Built with Codex
+2:10 Setup
+2:17 Call it
+2:22 Bonus: from the stream
 ```
 
 ## Image gallery

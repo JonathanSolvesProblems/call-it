@@ -90,3 +90,7 @@ Setup is one command, npm run live, plus a browser source in OBS. No server to h
 
 [2:17, final shot: Ysolde payout and clip landing in chat] [P]
 Small streamers don't need Affiliate to run predictions anymore. Call it.
+
+## Final edit note (2026-10-31)
+
+The recorded opener ("Hey, what is going on guys?") was cut: it clipped on the mic. The two takes are joined after "so it works with any game." with a 0.32 s gap. Faces come only from the stream recording; the narration camera is not used. Final cut 2:44.
