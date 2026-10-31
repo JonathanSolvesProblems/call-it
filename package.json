@@ -1,9 +1,13 @@
 {
   "name": "call-it",
   "version": "0.1.0",
+  "description": "Watches your game through OBS and runs prediction bets in your Twitch chat: it opens, locks, settles and clips them.",
+  "license": "MIT",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
