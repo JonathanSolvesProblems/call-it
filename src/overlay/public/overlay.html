@@ -134,7 +134,8 @@
         const winner = bet.outcomes[bet.winningOutcomeIndex ?? -1];
         text(document.querySelector('#resultEyebrow'), 'WINNER');
         text(document.querySelector('#resultTitle'), winner ? winner.title : 'Prediction resolved');
-        text(document.querySelector('#resultSub'), 'Call It saw the moment.');
+        const bettorCount = bet.outcomes.reduce((sum, item) => sum + item.bettors, 0);
+        text(document.querySelector('#resultSub'), bettorCount === 0 ? 'No one bet on this one.' : 'Call It saw the moment.');
         result.classList.remove('refunded'); result.classList.add('shown');
       } else if (bet.status === 'refunded') {
         text(document.querySelector('#resultEyebrow'), 'REFUNDED');

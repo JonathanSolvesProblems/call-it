@@ -12,7 +12,7 @@ const activeBet: GuardContext["bet"] = {
 };
 
 function context(overrides: Partial<GuardContext> = {}): GuardContext {
-  return { nowMs: 20_000, mode: "chat", bet: null, lastOpenedAtMs: null, minGapSeconds: 60, live: true, paused: false, adBreak: false, ...overrides };
+  return { nowMs: 20_000, mode: "chat", bet: null, lastOpenedAtMs: null, minGapSeconds: 180, live: true, paused: false, adBreak: false, ...overrides };
 }
 
 const openAction = (overrides: Partial<Extract<AgentAction, { tool: "open_bet" }>['arguments']> = {}): AgentAction => ({
@@ -28,7 +28,8 @@ describe("agent action guards", () => {
 
   it("allows only one active bet and enforces the minimum gap", () => {
     expect(validateAction(openAction(), context({ bet: activeBet }))).toContain("already active");
-    expect(validateAction(openAction(), context({ nowMs: 59_999, lastOpenedAtMs: 0 }))).toContain("60 seconds");
+    expect(validateAction(openAction({ reason: "A risky attempt is starting." }), context({ nowMs: 179_999, lastOpenedAtMs: 0 }))).toContain("180 seconds");
+    expect(validateAction(openAction({ reason: "Boss appears on screen." }), context({ nowMs: 60_000, lastOpenedAtMs: 0 }))).toBeNull();
   });
 
   it("blocks opening during an ad break", () => {
@@ -56,12 +57,17 @@ describe("agent action guards", () => {
     expect(validateAction({ tool: "lock_bet", arguments: { reason: "closing" } }, context())).toContain("no active bet");
     expect(validateAction({ tool: "lock_bet", arguments: { reason: "closing" } }, context({ bet: { ...activeBet, status: "locked" } }))).toContain("open bet");
     expect(validateAction({ tool: "lock_bet", arguments: { reason: " " } }, context({ bet: activeBet }))).toContain("empty");
+    expect(validateAction({ tool: "lock_bet", arguments: { reason: "closing" } }, context({ nowMs: 29_999, bet: activeBet }))).toContain("30 seconds");
+    expect(validateAction({ tool: "lock_bet", arguments: { reason: "closing" } }, context({ nowMs: 30_000, bet: activeBet }))).toBeNull();
   });
 
-  it("requires an active bet, ten elapsed seconds, a valid outcome, and evidence to resolve", () => {
+  it("requires an active bet, enough betting time or visible outcome, a valid outcome, and evidence to resolve", () => {
     const resolve: AgentAction = { tool: "resolve_bet", arguments: { outcome_index: 0, evidence: "Victory text in frame 2." } };
     expect(validateAction(resolve, context())).toContain("no active bet");
-    expect(validateAction(resolve, context({ bet: { ...activeBet, openedAtMs: 15_000 } }))).toContain("first 10 seconds");
+    expect(validateAction({ ...resolve, arguments: { ...resolve.arguments, evidence: "The fight continues." } }, context({ bet: { ...activeBet, openedAtMs: 15_000 } }))).toContain("30 seconds");
+    for (const evidence of ["Nameplate marked Dead", "Nameplate shows 0 HP", "Combat log says killed", "Experience awarded", "Loot dropped"]) {
+      expect(validateAction({ ...resolve, arguments: { ...resolve.arguments, evidence } }, context({ bet: { ...activeBet, openedAtMs: 15_000 } }))).toBeNull();
+    }
     expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 2, evidence: "visible" } }, context({ bet: activeBet }))).toContain("out of range");
     expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 0, evidence: " " } }, context({ bet: activeBet }))).toContain("Evidence");
     expect(validateAction(resolve, context({ bet: activeBet }))).toBeNull();
@@ -71,5 +77,8 @@ describe("agent action guards", () => {
     expect(validateAction({ tool: "cancel_bet", arguments: { reason: "unclear" } }, context())).toContain("no active bet");
     expect(validateAction({ tool: "cancel_bet", arguments: { reason: " " } }, context({ bet: activeBet }))).toContain("empty");
     expect(validateAction({ tool: "cancel_bet", arguments: { reason: "unclear" } }, context({ bet: activeBet }))).toBeNull();
+    const justLocked = { ...activeBet, openedAtMs: 0, lockedAtMs: 15_000 };
+    expect(validateAction({ tool: "cancel_bet", arguments: { reason: "unclear" } }, context({ nowMs: 20_000, bet: justLocked }))).toContain("20 seconds");
+    expect(validateAction({ tool: "cancel_bet", arguments: { reason: "The scene left the moment." } }, context({ nowMs: 20_000, bet: justLocked }))).toBeNull();
   });
 });

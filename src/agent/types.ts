@@ -18,6 +18,7 @@ export interface ActiveBetContext {
   outcomes: string[];
   pools: Array<{ points: number; bettors: number }>;
   openedAtMs: number;
+  lockedAtMs?: number;
   expiresAtMs: number;
 }
 

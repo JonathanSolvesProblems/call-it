@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 export interface DecisionEntry {
   timestamp: string;
   frameHashes: string[];
+  frameFiles?: string[];
   model: string;
   tool: string;
   arguments: unknown;

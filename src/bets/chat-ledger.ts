@@ -132,8 +132,9 @@ export class ChatBetLedger {
     const stakes: Stake[] = Object.entries(bet.stakes).map(([userId, value]) => ({ userId, ...value }));
     const payout = calculatePayouts(stakes, winningOutcomeIndex);
     for (const [userId, amount] of Object.entries(payout.payouts)) this.balances[userId] = this.balance(userId) + amount;
-    bet.status = payout.refunds ? "refunded" : "resolved";
-    if (!payout.refunds) bet.winningOutcomeIndex = winningOutcomeIndex;
+    const noStakes = Object.keys(bet.stakes).length === 0;
+    bet.status = payout.refunds && !noStakes ? "refunded" : "resolved";
+    bet.winningOutcomeIndex = winningOutcomeIndex;
     bet.settledAtMs = nowMs;
     await this.save();
     return { bet, payout };

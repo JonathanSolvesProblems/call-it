@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgentLoop, type AgentExecutor } from "../src/agent/loop.js";
 import { DecisionLog } from "../src/agent/decision-log.js";
 import type { FrameSource } from "../src/frames/frame-source.js";
+import { FrameArchive } from "../src/frames/frame-archive.js";
 import { OverlayServer } from "../src/overlay/server.js";
 
 const directories: string[] = [];
@@ -45,6 +46,7 @@ describe("agent loop tool validation", () => {
       executor,
       decisions,
       overlay: new OverlayServer(),
+      frameArchive: new FrameArchive(join(directory, "frames")),
       clock: () => 20_000,
     });
 
@@ -53,11 +55,12 @@ describe("agent loop tool validation", () => {
     expect(call).toHaveBeenCalledTimes(2);
     expect(call.mock.calls[1]?.[1]).toMatchObject({ previousResponseId: "response-1", outputs: [{ callId: "call-response-1" }] });
     expect(executor.resolveBet).not.toHaveBeenCalled();
-    const row = JSON.parse(await readFile(decisions.filePath, "utf8")) as { tool: string; guardResult: string; inputTokens: number; outputTokens: number };
+    const row = JSON.parse(await readFile(decisions.filePath, "utf8")) as { tool: string; guardResult: string; inputTokens: number; outputTokens: number; frameFiles: string[] };
     expect(row.tool).toBe("wait");
     expect(row.guardResult).toContain("one correction");
     expect(row.inputTokens).toBe(20);
     expect(row.outputTokens).toBe(6);
+    expect(row.frameFiles).toHaveLength(1);
   });
 
   it("logs automatic timeouts without calling the model", async () => {

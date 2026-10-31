@@ -1,5 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises";
 import type { FrameSource } from "../frames/frame-source.js";
+import { FrameArchive } from "../frames/frame-archive.js";
 import type { OverlayServer } from "../overlay/server.js";
 import { AgentBrain, functionCalls, type FunctionCall } from "./brain.js";
 import { DecisionLog, type DecisionEntry } from "./decision-log.js";
@@ -29,6 +30,7 @@ export interface AgentLoopOptions {
   maxBetSeconds?: number;
   memorySummary?: string;
   mode?: "chat" | "native";
+  frameArchive?: FrameArchive;
   clock?: () => number;
   onDecision?: (entry: DecisionEntry) => void;
 }
@@ -43,14 +45,16 @@ export class AgentLoop {
   private readonly minGapSeconds: number;
   private readonly maxBetSeconds: number;
   private readonly mode: "chat" | "native";
+  private readonly frameArchive: FrameArchive;
   private nextTickAtMs = 0;
 
   constructor(private readonly options: AgentLoopOptions) {
     this.clock = options.clock ?? Date.now;
     this.tickSeconds = positiveNumber(options.tickSeconds ?? Number(process.env.TICK_SECONDS), 4);
-    this.minGapSeconds = positiveNumber(options.minGapSeconds ?? Number(process.env.MIN_GAP_SECONDS), 60);
+    this.minGapSeconds = positiveNumber(options.minGapSeconds ?? Number(process.env.MIN_GAP_SECONDS), 180);
     this.maxBetSeconds = positiveNumber(options.maxBetSeconds ?? Number(process.env.MAX_BET_SECONDS), 900);
     this.mode = options.mode ?? "chat";
+    this.frameArchive = options.frameArchive ?? new FrameArchive();
   }
 
   setLive(live: boolean): void {
@@ -101,10 +105,11 @@ export class AgentLoop {
     const tickStartedAt = this.clock();
     const frames = this.options.frames.latest(3);
     const frameHashes = frames.map((frame) => frame.sha256);
+    let frameFiles: string[] = [];
     const deadline = await this.options.executor.checkDeadlines(tickStartedAt, this.maxBetSeconds);
     if (deadline) {
       await this.record({
-        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, model: this.options.brain.model,
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: deadline, arguments: {}, guardResult: "accepted: automatic bet deadline", latencyMs: 0, inputTokens: 0, outputTokens: 0,
       }, deadline === "timeout" ? "Bet timed out and was refunded." : "Bet window ended and was locked.");
       return;
@@ -113,7 +118,7 @@ export class AgentLoop {
     if (this.paused || this.adBreak) {
       const status = this.adBreak ? "ad_break" : "paused";
       await this.record({
-        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, model: this.options.brain.model,
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: status, arguments: {}, guardResult: "model call skipped", latencyMs: 0, inputTokens: 0, outputTokens: 0,
       }, this.adBreak ? "Ad break active. Waiting before the next model call." : "Paused by the streamer.");
       return;
@@ -122,9 +127,20 @@ export class AgentLoop {
     const newestFrame = frames.at(-1);
     if (!newestFrame || tickStartedAt - newestFrame.timestampMs > 10_000) {
       await this.record({
-        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, model: this.options.brain.model,
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: "no_frames", arguments: {}, guardResult: "model call skipped: no current frame", latencyMs: 0, inputTokens: 0, outputTokens: 0,
       }, "No current frame is available. Waiting for OBS.");
+      return;
+    }
+
+    try {
+      frameFiles = await this.frameArchive.save(frames);
+    } catch (error) {
+      await this.record({
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+        tool: "frame_archive_error", arguments: {}, guardResult: `model call skipped: could not archive frames: ${errorMessage(error)}`,
+        latencyMs: 0, inputTokens: 0, outputTokens: 0,
+      }, "Could not save the current frames. Waiting for the next tick.");
       return;
     }
 
@@ -218,6 +234,9 @@ export class AgentLoop {
         args = action.arguments;
         reason = reasonFor(action);
         guardResult = correctionError ? `accepted after one correction: ${correctionError}` : "accepted";
+        if (action.tool === "cancel_bet" && /scene (?:has )?left|left the scene|scene changed|left the moment/i.test(action.arguments.reason)) {
+          guardResult += "; accepted scene-left exception";
+        }
         try {
           await this.execute(action, this.clock());
         } catch (error) {
@@ -241,7 +260,7 @@ export class AgentLoop {
     }
 
     await this.record({
-      timestamp: new Date(this.clock()).toISOString(), frameHashes, model: this.options.brain.model, tool, arguments: args,
+      timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.options.brain.model, tool, arguments: args,
       guardResult, latencyMs: modelLatencyMs, inputTokens, outputTokens,
     }, reason);
   }

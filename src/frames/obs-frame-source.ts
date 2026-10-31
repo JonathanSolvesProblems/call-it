@@ -7,6 +7,7 @@ interface ObsFrameSourceOptions {
   url?: string;
   password?: string;
   frameSeconds?: number;
+  sourceName?: string;
   logger?: Pick<Console, "info" | "warn" | "error">;
 }
 
@@ -16,6 +17,7 @@ export class ObsFrameSource implements FrameSource {
   private readonly url: string;
   private readonly password: string | undefined;
   private readonly frameSeconds: number;
+  private readonly sourceName: string | undefined;
   private readonly logger: Pick<Console, "info" | "warn" | "error">;
   private connected = false;
   private stopped = true;
@@ -26,6 +28,7 @@ export class ObsFrameSource implements FrameSource {
     this.url = options.url ?? process.env.OBS_WS_URL ?? "ws://127.0.0.1:4455";
     this.password = options.password ?? process.env.OBS_WS_PASSWORD;
     this.frameSeconds = options.frameSeconds ?? parsePositiveNumber(process.env.FRAME_SECONDS, 2);
+    this.sourceName = (options.sourceName ?? process.env.OBS_SOURCE_NAME)?.trim() || undefined;
     this.logger = options.logger ?? console;
     this.obs.on("ConnectionClosed", (error) => {
       this.connected = false;
@@ -41,6 +44,7 @@ export class ObsFrameSource implements FrameSource {
   start(): void {
     if (!this.stopped) return;
     this.stopped = false;
+    this.logger.info(`Using OBS ${this.sourceName ? `source "${this.sourceName}"` : "program scene"} for frames.`);
     this.loopPromise = this.captureLoop();
   }
 
@@ -67,14 +71,14 @@ export class ObsFrameSource implements FrameSource {
         }
 
         const startedAt = Date.now();
-        const { currentProgramSceneName } = await this.obs.call("GetCurrentProgramScene");
+        const sourceName = this.sourceName ?? (await this.obs.call("GetCurrentProgramScene")).currentProgramSceneName;
         const { imageData } = await this.obs.call("GetSourceScreenshot", {
-          sourceName: currentProgramSceneName,
+          sourceName,
           imageFormat: "jpg",
           imageWidth: parsePositiveNumber(process.env.OBS_FRAME_WIDTH, 1280),
           imageCompressionQuality: 70,
         });
-        const jpegBase64 = imageData.replace(/^data:image\/jpeg;base64,/, "");
+        const jpegBase64 = stripImageDataPrefix(imageData);
         const bytes = Buffer.from(jpegBase64, "base64");
         this.frames.push({
           timestampMs: Date.now(),
@@ -92,6 +96,10 @@ export class ObsFrameSource implements FrameSource {
       }
     }
   }
+}
+
+export function stripImageDataPrefix(imageData: string): string {
+  return imageData.replace(/^data:image\/[a-z]+;base64,/i, "");
 }
 
 function parsePositiveNumber(value: string | undefined, fallback: number): number {

@@ -13,6 +13,23 @@ afterEach(async () => {
 });
 
 describe("chat bet deadlines", () => {
+  it("announces a resolved outcome when nobody placed a stake", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-empty-chat-mode-"));
+    directories.push(directory);
+    const ledger = await ChatBetLedger.open(join(directory, "channel.json"));
+    const messages: string[] = [];
+    const overlay = new OverlayServer();
+    const service = new ChatBetService(ledger, async (message) => { messages.push(message); }, overlay);
+    await service.openBet({ question: "Next boss?", outcomes: ["Down", "Survives"], window_seconds: 30, reason: "The boss appears." }, 10_000);
+
+    await service.resolveBet(0, "The nameplate says Dead.", 40_000);
+
+    expect(ledger.currentBet?.status).toBe("resolved");
+    expect(ledger.balance("nobody")).toBe(1000);
+    expect(messages.at(-1)).toBe("Down! No one bet on this one.");
+    expect(overlay.getState().bet).toMatchObject({ status: "resolved", winningOutcomeIndex: 0 });
+  });
+
   it("locks when the betting window ends and refunds after the maximum bet duration", async () => {
     const directory = await mkdtemp(join(tmpdir(), "callit-chat-mode-"));
     directories.push(directory);
