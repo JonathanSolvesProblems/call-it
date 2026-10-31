@@ -43,7 +43,7 @@ export class OverlayServer {
     this.state = {
       ...this.state,
       ...patch,
-      ...(patch.decisions ? { decisions: patch.decisions.slice(-10) } : {}),
+      ...(patch.decisions ? { decisions: patch.decisions.slice(-50) } : {}),
     };
     this.publish();
   }

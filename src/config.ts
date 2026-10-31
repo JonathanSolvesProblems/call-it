@@ -19,6 +19,10 @@ export interface Config {
   openAiResolveModel: string;
 }
 
+export function selectBetMode(_broadcasterType: TwitchUserBroadcasterType): "chat" { return "chat"; }
+
+type TwitchUserBroadcasterType = "" | "affiliate" | "partner";
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const twitchClientId = env.TWITCH_CLIENT_ID?.trim();
   if (!twitchClientId) {

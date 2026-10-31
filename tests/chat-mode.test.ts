@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChatBetLedger } from "../src/bets/chat-ledger.js";
 import { ChatBetService } from "../src/bets/chat-mode.js";
 import { OverlayServer } from "../src/overlay/server.js";
@@ -29,6 +29,69 @@ describe("chat bet deadlines", () => {
     expect(messages.at(-1)).toBe("Down! No one bet on this one.");
     expect(messages.some((message) => message.startsWith("LOCKED:"))).toBe(false);
     expect(overlay.getState().bet).toMatchObject({ status: "resolved", winningOutcomeIndex: 0 });
+  });
+
+  it("batches accepted stake replies within three seconds", async () => {
+    vi.useFakeTimers();
+    try {
+      const ledger = ChatBetLedger.inMemory();
+      const messages: string[] = [];
+      const service = new ChatBetService(ledger, async (message) => { messages.push(message); }, new OverlayServer());
+      await service.openBet({ question: "Next point?", outcomes: ["Red", "Blue"], window_seconds: 60, reason: "The point is starting." }, 1000);
+      messages.length = 0;
+
+      await service.handleBetMessage("a", "alice-id", "!1 200", 2000, "alice");
+      await service.handleBetMessage("b", "bob-id", "!2 300", 2500, "bob");
+      expect(messages).toEqual([]);
+      await vi.advanceTimersByTimeAsync(3000);
+
+      expect(messages).toEqual(["@alice 200 on Red (800 left) · @bob 300 on Blue (700 left)"]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("replies once per viewer and bet with stake rejection reasons", async () => {
+    const ledger = ChatBetLedger.inMemory();
+    const messages: string[] = [];
+    const service = new ChatBetService(ledger, async (message) => { messages.push(message); }, new OverlayServer());
+    await service.openBet({ question: "Next point?", outcomes: ["Red", "Blue"], window_seconds: 60, reason: "The point is starting." }, 1000);
+    messages.length = 0;
+
+    await service.handleBetMessage("poor-1", "poor", "!1 2000", 2000, "poor");
+    await service.handleBetMessage("poor-2", "poor", "!1 3000", 2100, "poor");
+    await service.handleBetMessage("switch-1", "switcher", "!1 100", 2150, "switcher");
+    await service.handleBetMessage("switch-2", "switcher", "!2 100", 2160, "switcher");
+    await service.handleBetMessage("start", "locked", "!1 100", 2200, "locked");
+    await service.lockBet("The point is live.", 32_000);
+    await service.handleBetMessage("locked-bet", "locked", "!1 100", 33_000, "lockedViewer");
+    await service.cancelBet("The point ended without a result.", 34_000);
+    await service.handleBetMessage("closed-bet", "closed", "!1 100", 35_000, "closedViewer");
+
+    expect(messages.filter((message) => message.includes("not enough points"))).toEqual(["@poor not enough points (1,000 left)."]);
+    expect(messages).toContain("@switcher you are already on another outcome for this bet.");
+    expect(messages).toContain("@lockedViewer that bet is locked.");
+    expect(messages).toContain("@closedViewer that bet is closed.");
+  });
+
+  it("announces the biggest winner with correct singular and plural grammar", async () => {
+    const ledger = ChatBetLedger.inMemory();
+    const messages: string[] = [];
+    const service = new ChatBetService(ledger, async (message) => { messages.push(message); }, new OverlayServer());
+    await service.openBet({ question: "Next point?", outcomes: ["Red", "Blue"], window_seconds: 60, reason: "The point is starting." }, 1000);
+    await service.handleBetMessage("a", "alice-id", "!1 100", 2000, "alice");
+    await service.handleBetMessage("b", "bob-id", "!2 100", 2100, "bob");
+
+    await service.resolveBet(0, "Visible score.", "Red took the point.", 32_000);
+
+    expect(messages.at(-1)).toBe("Resolved: Red | @alice +200 pts | 1 winner | Red took the point.");
+    expect(ledger.currentBet).toMatchObject({ settlementReason: "Red took the point.", winnerCount: 1, biggestPayout: 200, biggestWinnerLogin: "alice", checkedBySecondLook: true });
+    expect(service.overlayBet()).toMatchObject({ resultReason: "Red took the point.", winnerCount: 1, biggestPayout: 200, checkedBySecondLook: true });
+
+    await service.openBet({ question: "Next round?", outcomes: ["Green", "Gold"], window_seconds: 60, reason: "The next round starts." }, 33_000);
+    await service.handleBetMessage("c", "alice-id", "!1 100", 34_000, "alice");
+    await service.handleBetMessage("d", "carol-id", "!1 100", 34_100, "carol");
+    await service.handleBetMessage("e", "bob-id", "!2 100", 34_200, "bob");
+    await service.resolveBet(0, "The score changed.", "Green took it.", 64_000);
+    expect(messages.at(-1)).toBe("Resolved: Green | @alice +150 pts | 2 winners | Green took it.");
   });
 
   it("replies to a bet command without an open bet no more than once every 30 seconds", async () => {

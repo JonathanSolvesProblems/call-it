@@ -20,7 +20,12 @@ export interface ChatBet {
   clipId?: string;
   clipUrl?: string;
   markerPositionSeconds?: number;
-  stakes: Record<string, { outcomeIndex: number; amount: number }>;
+  stakes: Record<string, { outcomeIndex: number; amount: number; login?: string }>;
+  settlementReason?: string;
+  winnerCount?: number;
+  biggestPayout?: number;
+  biggestWinnerLogin?: string;
+  checkedBySecondLook?: boolean;
 }
 
 interface PersistedLedger {
@@ -106,7 +111,7 @@ export class ChatBetLedger {
     return bet;
   }
 
-  async placeStake(messageId: string, userId: string, command: BetCommand, nowMs = Date.now(), messageAlreadyMarked = false): Promise<PlaceStakeResult> {
+  async placeStake(messageId: string, userId: string, command: BetCommand, nowMs = Date.now(), messageAlreadyMarked = false, login?: string): Promise<PlaceStakeResult> {
     if (!messageAlreadyMarked && !this.markMessageSeen(messageId)) return { accepted: false, reason: "duplicate message" };
     const bet = this.getActiveBet();
     if (!bet || bet.status !== "open" || nowMs >= bet.expiresAtMs) return { accepted: false, reason: "no open bet" };
@@ -117,9 +122,11 @@ export class ChatBetLedger {
     const balance = this.balance(userId);
     if (amount > balance) return { accepted: false, reason: "not enough points", balance };
     this.balances[userId] = balance - amount;
-    bet.stakes[userId] = { outcomeIndex: command.outcomeIndex, amount: (existing?.amount ?? 0) + amount };
+    const savedLogin = login || existing?.login;
+    const updatedStake = { outcomeIndex: command.outcomeIndex, amount: (existing?.amount ?? 0) + amount, ...(savedLogin ? { login: savedLogin } : {}) };
+    bet.stakes[userId] = updatedStake;
     await this.save();
-    return { accepted: true, balance: this.balances[userId], stake: bet.stakes[userId].amount };
+    return { accepted: true, balance: this.balances[userId], stake: updatedStake.amount };
   }
 
   async lock(nowMs = Date.now()): Promise<ChatBet> {
@@ -175,6 +182,18 @@ export class ChatBetLedger {
     await this.save();
   }
 
+  async recordSettlement(betId: string, settlement: { reason: string; winnerCount: number; biggestPayout: number; biggestWinnerLogin?: string; checkedBySecondLook: boolean }): Promise<void> {
+    const bet = this.currentBet;
+    if (!bet || bet.id !== betId) return;
+    bet.settlementReason = settlement.reason;
+    bet.winnerCount = settlement.winnerCount;
+    bet.biggestPayout = settlement.biggestPayout;
+    if (settlement.biggestWinnerLogin) bet.biggestWinnerLogin = settlement.biggestWinnerLogin;
+    else delete bet.biggestWinnerLogin;
+    bet.checkedBySecondLook = settlement.checkedBySecondLook;
+    await this.save();
+  }
+
   pools(): Array<{ points: number; bettors: number }> {
     const bet = this.currentBet;
     if (!bet) return [];
@@ -188,6 +207,7 @@ export class ChatBetLedger {
     const bet = this.currentBet;
     if (!bet) return null;
     return {
+      id: bet.id,
       question: bet.question,
       outcomes: bet.outcomes.map((title, index) => {
         const pool = this.pools()[index] ?? { points: 0, bettors: 0 };
@@ -197,6 +217,11 @@ export class ChatBetLedger {
       secondsLeft: Math.max(0, Math.ceil((bet.expiresAtMs - nowMs) / 1000)),
       ...(bet.winningOutcomeIndex === undefined ? {} : { winningOutcomeIndex: bet.winningOutcomeIndex }),
       ...(bet.clipUrl === undefined ? {} : { clipUrl: bet.clipUrl }),
+      ...(bet.settlementReason === undefined ? {} : { resultReason: bet.settlementReason }),
+      ...(bet.winnerCount === undefined ? {} : { winnerCount: bet.winnerCount }),
+      ...(bet.biggestPayout === undefined ? {} : { biggestPayout: bet.biggestPayout }),
+      ...(bet.biggestWinnerLogin === undefined ? {} : { biggestWinnerLogin: bet.biggestWinnerLogin }),
+      ...(bet.checkedBySecondLook === undefined ? {} : { checkedBySecondLook: bet.checkedBySecondLook }),
     };
   }
 

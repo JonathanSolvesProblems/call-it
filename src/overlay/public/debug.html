@@ -12,6 +12,10 @@
     .wordmark { color:var(--lime); font:800 13px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.18em; }
     #demo { display:none; padding:8px 12px; border:1px solid rgba(216,255,79,.35); border-radius:99px; color:var(--lime); font:700 11px/1 ui-monospace,monospace; letter-spacing:.12em; }
     main { display:grid; grid-template-columns:minmax(480px,1.3fr) minmax(360px,.7fr); gap:28px; padding:34px; }
+    #currentBetPanel { grid-column:1 / -1; min-height:0; }
+    #currentBet { color:var(--muted); }
+    #currentQuestion { margin:0 0 8px; color:#f2f4ec; font-size:19px; font-weight:750; }
+    #currentMeta { font:12px ui-monospace,monospace; }
     .panel { min-width:0; padding:7px; border:1px solid rgba(255,255,255,.11); border-radius:23px; background:rgba(255,255,255,.045); }
     .inner { height:100%; min-height:360px; padding:22px; border:1px solid rgba(255,255,255,.07); border-radius:17px; background:#171b18; }
     h1 { margin:0 0 20px; font-size:20px; letter-spacing:-.025em; }
@@ -20,21 +24,47 @@
     .meta { margin-top:14px; color:var(--muted); font:12px ui-monospace,monospace; }
     #decisions { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
     #decisions li { padding:14px 15px; border-left:2px solid rgba(216,255,79,.7); border-radius:0 10px 10px 0; background:rgba(255,255,255,.035); }
+    .decisionTop { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px; }
+    .tool { padding:5px 8px; border-radius:6px; background:rgba(216,255,79,.12); color:var(--lime); font:800 10px/1 ui-monospace,monospace; }
+    .model { color:#b8c1b1; font:11px ui-monospace,monospace; }
     time { display:block; margin-bottom:6px; color:#899184; font:11px ui-monospace,monospace; }
     .reason { line-height:1.4; }
+    .guard { margin-top:8px; color:#ffc45b; font:12px/1.4 ui-monospace,monospace; }
+    .guard.corrected { color:#88d7ff; }
     @media(max-width:850px) { main { grid-template-columns:1fr; padding:20px; } header { padding:20px; } }
   </style>
 </head>
 <body>
   <header><div class="wordmark">CALL IT <span style="color:#f2f4ec">/ DEBUG</span></div><div id="demo">DEMO DATA</div></header>
   <main>
+    <section id="currentBetPanel" class="panel"><div class="inner"><h1>Current bet</h1><div id="currentBet"><div id="currentQuestion">No active bet.</div><div id="currentMeta"></div></div></div></section>
     <section class="panel"><div class="inner"><h1>Latest frame</h1><div id="frame">Waiting for a frame…</div><div id="frameMeta" class="meta"></div></div></section>
     <section class="panel"><div class="inner"><h1>Recent decisions</h1><ol id="decisions"><li class="reason">No decisions yet.</li></ol></div></section>
   </main>
   <script>
     const frame = document.querySelector('#frame');
+    function text(node, value) { node.textContent = value ?? ''; }
+    function displayTool(tool) { return tool === 'skipped_tick' || tool === 'no_frames' || tool === 'awaiting_confirmation_frame' ? 'skipped' : tool; }
+    function compressWaits(decisions) {
+      const rows = [];
+      for (let i = 0; i < decisions.length;) {
+        if (decisions[i].tool !== 'wait') { rows.push(decisions[i]); i += 1; continue; }
+        let end = i + 1;
+        while (end < decisions.length && decisions[end].tool === 'wait') end += 1;
+        const count = end - i;
+        const first = decisions[i], last = decisions[end - 1];
+        const span = last.timestampMs - first.timestampMs;
+        const seconds = Math.round(count > 1 ? (span + span / (count - 1)) / 1000 : 4);
+        rows.push({ ...first, reason: `waited x${count} (${seconds} s)`, guardResult: '' });
+        i = end;
+      }
+      return rows;
+    }
     function render(state) {
       document.querySelector('#demo').style.display = state.demoData ? 'block' : 'none';
+      const bet = state.bet;
+      text(document.querySelector('#currentQuestion'), bet ? bet.question : 'No active bet.');
+      text(document.querySelector('#currentMeta'), bet ? `${bet.status.toUpperCase()} · ${bet.outcomes.map(item => `${item.title}: ${item.points.toLocaleString()} pts / ${item.bettors} bettors`).join(' · ')}` : '');
       if (state.latestFrameJpegBase64) {
         let img = frame.querySelector('img');
         if (!img) { frame.replaceChildren(); img = document.createElement('img'); frame.append(img); }
@@ -44,11 +74,20 @@
         frame.textContent = 'Waiting for a frame…';
         document.querySelector('#frameMeta').textContent = '';
       }
-      const items = (state.decisions || []).slice(-10).reverse().map(decision => {
+      const items = compressWaits(state.decisions || []).slice(-50).reverse().map(decision => {
         const item = document.createElement('li');
         const stamp = document.createElement('time'); stamp.textContent = new Date(decision.timestampMs).toLocaleTimeString();
         const reason = document.createElement('div'); reason.className = 'reason'; reason.textContent = decision.reason;
-        item.append(stamp, reason); return item;
+        const top = document.createElement('div'); top.className = 'decisionTop';
+        const tool = document.createElement('span'); tool.className = 'tool'; tool.textContent = displayTool(decision.tool || 'wait');
+        const model = document.createElement('span'); model.className = 'model'; model.textContent = decision.model || '';
+        top.append(tool, model);
+        item.append(stamp, top, reason);
+        const guardResult = decision.guardResult || '';
+        if (/invalid|reject|correct|treated as wait|failed/i.test(guardResult)) {
+          const guard = document.createElement('div'); guard.className = 'guard' + (/corrected from/i.test(guardResult) ? ' corrected' : ' rejected'); guard.textContent = guardResult; item.append(guard);
+        }
+        return item;
       });
       document.querySelector('#decisions').replaceChildren(...(items.length ? items : [Object.assign(document.createElement('li'), { className:'reason', textContent:'No decisions yet.' })]));
     }

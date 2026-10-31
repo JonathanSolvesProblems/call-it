@@ -7,18 +7,27 @@ export interface OverlayOutcome {
 }
 
 export interface OverlayBet {
+  id?: string;
   question: string;
   outcomes: OverlayOutcome[];
   status: BetStatus | "checking";
   secondsLeft: number;
   winningOutcomeIndex?: number;
   clipUrl?: string;
+  resultReason?: string;
+  winnerCount?: number;
+  biggestPayout?: number;
+  biggestWinnerLogin?: string;
+  checkedBySecondLook?: boolean;
   proposedOutcomeIndex?: number;
 }
 
 export interface OverlayDecision {
   timestampMs: number;
+  tool: string;
+  model: string;
   reason: string;
+  guardResult: string;
 }
 
 export interface OverlayState {

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { loadConfig } from "./config.js";
+import { loadConfig, selectBetMode } from "./config.js";
 import { AgentBrain } from "./agent/brain.js";
 import { DecisionLog } from "./agent/decision-log.js";
 import { AgentLoop } from "./agent/loop.js";
@@ -23,7 +23,7 @@ async function live(): Promise<void> {
   if (!bot) throw new Error("The authorized Twitch account could not be loaded.");
   const broadcaster = (await helix.getUsers(bot.login))[0];
   if (!broadcaster) throw new Error(`Could not load broadcaster ${bot.login}.`);
-  const mode = broadcaster.broadcaster_type === "affiliate" || broadcaster.broadcaster_type === "partner" ? "native" : "chat";
+  const mode = selectBetMode(broadcaster.broadcaster_type);
   console.log(`Channel ${broadcaster.display_name}: broadcaster_type=${broadcaster.broadcaster_type || "none"}, mode=${mode}`);
   let streamLive = (await helix.getStreams(broadcaster.id)).length > 0;
   const forceLive = process.env.CALLIT_FORCE_LIVE === "1";
@@ -43,29 +43,25 @@ async function live(): Promise<void> {
   let chatBets: ChatBetService | undefined;
   let agent: AgentLoop | undefined;
   const modelUsage = new ModelCallReporter((message) => console.log(message));
-  if (mode === "chat") {
-    ledger = await ChatBetLedger.open(join(process.cwd(), "data", "ledger", `${broadcaster.id}.json`));
-    const moments = new TwitchMomentRecorder(helix, broadcaster.id, sendChat, () => streamLive);
-    chatBets = new ChatBetService(ledger, sendChat, overlay, moments, () => streamLive);
-    const decisions = new DecisionLog();
-    await decisions.loadRecent();
-    agent = new AgentLoop({
-      frames,
-      brain: new AgentBrain({ ...process.env, OPENAI_MODEL: config.openAiModel, OPENAI_RESOLVE_MODEL: config.openAiResolveModel }),
-      executor: chatBets,
-      decisions,
-      overlay,
-      maxModelCalls,
-      onModelCallStart: () => modelUsage.callStarted(),
-      onModelCall: (usage) => modelUsage.recordUsage(usage),
-      onStop: (reason) => {
-        console.log(reason);
-        void shutdown();
-      },
-    });
-  } else {
-    console.warn("Native prediction mode is not part of this slice. The chat-mode agent loop is not started.");
-  }
+  ledger = await ChatBetLedger.open(join(process.cwd(), "data", "ledger", `${broadcaster.id}.json`));
+  const moments = new TwitchMomentRecorder(helix, broadcaster.id, sendChat, () => streamLive);
+  chatBets = new ChatBetService(ledger, sendChat, overlay, moments, () => streamLive);
+  const decisions = new DecisionLog();
+  await decisions.loadRecent();
+  agent = new AgentLoop({
+    frames,
+    brain: new AgentBrain({ ...process.env, OPENAI_MODEL: config.openAiModel, OPENAI_RESOLVE_MODEL: config.openAiResolveModel }),
+    executor: chatBets,
+    decisions,
+    overlay,
+    maxModelCalls,
+    onModelCallStart: () => modelUsage.callStarted(),
+    onModelCall: (usage) => modelUsage.recordUsage(usage),
+    onStop: (reason) => {
+      console.log(reason);
+      void shutdown();
+    },
+  });
 
   await overlay.listen();
   frames.start();
@@ -99,7 +95,7 @@ async function live(): Promise<void> {
         }
         return;
       }
-      if (chatBets) await chatBets.handleBetMessage(event.message_id, event.chatter_user_id, text);
+      if (chatBets) await chatBets.handleBetMessage(event.message_id, event.chatter_user_id, text, Date.now(), event.chatter_user_login);
     },
     onStreamOnline: () => {
       streamLive = true;

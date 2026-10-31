@@ -68,7 +68,10 @@
     .resultEyebrow { margin-bottom:9px; color:var(--acid); font-size:12px; letter-spacing:.2em; }
     #result.refunded .resultEyebrow { color:#ffc45b; }
     #resultTitle { font-size:34px; font-weight:850; letter-spacing:-.035em; }
+    #resultReason { max-width:520px; margin:9px auto 0; color:#d1d7c8; font-size:16px; line-height:1.35; }
     #resultSub { margin-top:8px; color:#b5bbae; font-size:14px; }
+    #checkedBadge { display:none; margin-top:12px; color:#a6c1ff; font:700 10px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.12em; text-transform:uppercase; }
+    #checkedBadge.visible { display:block; }
     #clipLink { display:none; margin-top:13px; color:var(--acid); font:800 12px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.16em; text-decoration:none; }
     #clipLink.visible { display:inline-block; }
     #paused {
@@ -89,7 +92,7 @@
         <h1 id="question" class="question"></h1>
         <div id="outcomes" class="outcomes"></div>
         <div class="foot"><div id="decision" class="decision"></div><div id="timer" class="timer"></div></div>
-        <div id="result"><div id="resultEyebrow" class="resultEyebrow">WINNER</div><div id="resultTitle"></div><div id="resultSub">The call is in.</div><a id="clipLink" target="_blank" rel="noopener noreferrer">CLIPPED ↗</a></div>
+        <div id="result"><div id="resultEyebrow" class="resultEyebrow">WINNER</div><div id="resultTitle"></div><div id="resultReason"></div><div id="resultSub">The call is in.</div><div id="checkedBadge">Checked by a second look</div><a id="clipLink" target="_blank" rel="noopener noreferrer">CLIPPED ↗</a></div>
       </div></div>
     </section>
     <div id="paused"><span>Ⅱ</span><b id="pausedText">PAUSED</b></div>
@@ -99,18 +102,21 @@
     const outcomes = document.querySelector('#outcomes');
     const result = document.querySelector('#result');
     let previousBetKey = '';
+    let settledBetKey = '';
+    let hideTimer;
     function text(node, value) { node.textContent = value ?? ''; }
     function render(state) {
       document.querySelector('#demoBadge').style.display = state.demoData ? 'inline-flex' : 'none';
       document.querySelector('#paused').classList.toggle('show', Boolean(state.paused || state.adBreak));
       text(document.querySelector('#pausedText'), state.adBreak ? 'AD BREAK · BETTING PAUSED' : 'PAUSED');
       const bet = state.bet;
-      if (!bet) { card.classList.remove('visible'); return; }
-      const key = bet.question + '|' + bet.status;
+      if (!bet) { card.classList.remove('visible'); clearTimeout(hideTimer); hideTimer = undefined; settledBetKey = ''; return; }
+      const key = (bet.id || bet.question) + '|' + bet.status;
       if (key !== previousBetKey) {
         previousBetKey = key;
         result.classList.remove('shown', 'refunded');
       }
+      if (bet.status === 'open' && key !== settledBetKey) { clearTimeout(hideTimer); hideTimer = undefined; settledBetKey = ''; }
       text(document.querySelector('#question'), bet.question);
       const liveState = document.querySelector('#liveState');
       const isLocked = bet.status === 'locked';
@@ -136,8 +142,11 @@
         const winner = bet.outcomes[bet.winningOutcomeIndex ?? -1];
         text(document.querySelector('#resultEyebrow'), 'WINNER');
         text(document.querySelector('#resultTitle'), winner ? winner.title : 'Prediction resolved');
-        const bettorCount = bet.outcomes.reduce((sum, item) => sum + item.bettors, 0);
-        text(document.querySelector('#resultSub'), bettorCount === 0 ? 'No one bet on this one.' : 'Call It saw the moment.');
+        text(document.querySelector('#resultReason'), bet.resultReason || '');
+        const winnerCount = bet.winnerCount ?? 0;
+        const payoutLine = winnerCount === 0 ? 'No one bet on this one.' : `${winnerCount} winner${winnerCount === 1 ? '' : 's'} · ${winnerCount === 1 ? '' : 'biggest '}+${(bet.biggestPayout ?? 0).toLocaleString()} pts`;
+        text(document.querySelector('#resultSub'), payoutLine);
+        document.querySelector('#checkedBadge').classList.toggle('visible', Boolean(bet.checkedBySecondLook));
         const clipLink = document.querySelector('#clipLink');
         clipLink.href = bet.clipUrl || '';
         clipLink.classList.toggle('visible', Boolean(bet.clipUrl));
@@ -145,9 +154,16 @@
       } else if (bet.status === 'refunded') {
         text(document.querySelector('#resultEyebrow'), 'REFUNDED');
         text(document.querySelector('#resultTitle'), 'Points returned');
-        text(document.querySelector('#resultSub'), 'The moment was unclear, so nobody loses.');
+        text(document.querySelector('#resultReason'), bet.resultReason || '');
+        text(document.querySelector('#resultSub'), 'Every stake was returned.');
+        document.querySelector('#checkedBadge').classList.remove('visible');
         document.querySelector('#clipLink').classList.remove('visible');
         result.classList.add('refunded', 'shown');
+      }
+      if ((bet.status === 'resolved' || bet.status === 'refunded') && settledBetKey !== (bet.id || bet.question)) {
+        settledBetKey = bet.id || bet.question;
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => { card.classList.remove('visible'); result.classList.remove('shown'); }, 25000);
       }
     }
     function connect() {

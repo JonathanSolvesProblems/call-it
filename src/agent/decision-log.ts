@@ -23,10 +23,10 @@ export class DecisionLog {
   async loadRecent(): Promise<void> {
     try {
       const content = await readFile(this.filePath, "utf8");
-      for (const line of content.split(/\r?\n/).filter(Boolean).slice(-10)) {
+      for (const line of content.split(/\r?\n/).filter(Boolean).slice(-100)) {
         try { this.recent.push(JSON.parse(line) as DecisionEntry); } catch { /* Ignore a partial final line. */ }
       }
-      this.recent.splice(0, Math.max(0, this.recent.length - 10));
+      this.recent.splice(0, Math.max(0, this.recent.length - 100));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -36,10 +36,10 @@ export class DecisionLog {
     await mkdir(dirname(this.filePath), { recursive: true });
     await appendFile(this.filePath, `${JSON.stringify(entry)}\n`, { encoding: "utf8", mode: 0o600 });
     this.recent.push(entry);
-    this.recent.splice(0, Math.max(0, this.recent.length - 10));
+    this.recent.splice(0, Math.max(0, this.recent.length - 100));
   }
 
-  latest(): DecisionEntry[] {
-    return this.recent.map((entry) => structuredClone(entry));
+  latest(limit = 10): DecisionEntry[] {
+    return this.recent.slice(-limit).map((entry) => structuredClone(entry));
   }
 }

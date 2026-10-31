@@ -394,7 +394,10 @@ export class AgentLoop {
     this.options.overlay.update({
       bet: this.overlayBet(this.clock()),
       lastDecisionReason: reason,
-      decisions: this.options.decisions.latest().map((decision) => ({ timestampMs: Date.parse(decision.timestamp), reason: reasonFromEntry(decision) })),
+      decisions: this.options.decisions.latest(50).map((decision) => ({
+        timestampMs: Date.parse(decision.timestamp), tool: decision.tool, model: decision.model,
+        reason: reasonFromEntry(decision), guardResult: decision.guardResult,
+      })),
       ...(latestFrame ? { latestFrameJpegBase64: latestFrame.jpegBase64 } : {}),
     });
     this.options.onDecision?.(entry);

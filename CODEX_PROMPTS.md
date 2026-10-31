@@ -512,6 +512,44 @@ em dashes, no hype words. Order:
 Keep it under about 200 lines. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Demo polish and a mode bug (2026-10-31)
+
+```
+Review findings before the live demo. In order of importance:
+
+1. Bug: Affiliate and Partner channels get no agent. cli.ts picks "native" mode for them,
+   then logs "Native prediction mode is not part of this slice" and never starts the loop.
+   Native mode is dropped (SPEC.md). Always run chat mode, whatever broadcaster_type is.
+   Log the broadcaster type once. Remove the "slice" wording.
+2. Viewers get no reply when they bet. In chat mode:
+   - Accepted stake: one short reply, "@<login> <amount> on <outcome> (<balance> left)".
+     Batch: if several stakes land within 3 s, send one line listing them.
+   - Rejected stake: say why, once per viewer per bet: not enough points (with balance),
+     already on another outcome, bet locked or closed.
+   - Payout line: "1 winner" / "N winners" (grammar), and name the biggest winner:
+     "Resolved: <outcome> | @<login> +<payout> pts | N winners | <reason>". Keep under
+     Twitch's 500 characters.
+3. Overlay winner card (the demo's last shot):
+   - Under the winner title, show the viewer-facing reason (the confirm reason) instead of
+     "Call It saw the moment.", and a payout line ("1 winner · +400 pts"), or "No one bet on
+     this one." Add a small line "Checked by a second look" when it was confirmed.
+   - Hide the card 25 s after a bet settles or is refunded, unless a new bet opens first.
+     Keep "Clipped" visible on the card while it shows.
+4. Debug page (the video shows it to explain how the agent decides):
+   - Each entry shows a tool chip (wait, open_bet, lock_bet, resolve_bet,
+     confirm_resolution, reject_resolution, cancel_bet, timeout, skipped), the model that
+     made the call (gpt-5.4-mini or gpt-6.1-sol), the reason, and the guard result when a
+     call was rejected or corrected ("corrected from X to Y" in its own colour).
+   - Collapse runs of consecutive waits into one line: "waited x12 (48 s)".
+   - Show the current bet state at the top (question, status, pools).
+   The overlay state needs the tool, model and guard result per decision for this.
+5. Update overlay:demo so it walks through open, bets, lock, checking, a corrected
+   confirmation, payout with clip, and the card hiding, with the DEMO DATA badge on.
+
+Tests for 1 and 2 (mode selection, batched stake replies, rejection reasons, payout line).
+Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.
