@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-31T12:24:34.884Z",
+  "generatedAt": "2026-10-31T12:29:34.269Z",
   "model": "gpt-5.4-mini",
   "results": [
     {
       "id": "true-kill-tide-wisp",
       "expected": "confirm",
       "runs": 10,
-      "confirmCount": 9,
-      "rejectCount": 1,
+      "confirmCount": 10,
+      "rejectCount": 0,
       "invalidCount": 0
     },
     {

@@ -1,8 +1,8 @@
 # Phase 0 card
 
-Filled in before the first commit. Every `<fill>` gets a real answer, and a field
+Filled in before the first commit. Every fill marker gets a real answer, and a field
 with a RED condition met is either fixed (say how) or the verdict is not GO. The
-commit hook blocks commits while any `<fill>` remains or the verdict is not GO.
+commit hook blocks commits while any fill marker remains or the verdict is not GO.
 Long-form reasoning for each field: `~/.claude/hackathon-archive.md`, section
 "Gate checks, long form", and the rules cited in brackets.
 
