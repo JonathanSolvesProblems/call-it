@@ -59,6 +59,7 @@ export class AgentLoop {
   private pendingResolution: NonNullable<AgentContext["pendingResolution"]> | undefined;
   private pendingProposalFrames: NonNullable<AgentContext["proposalFrames"]> = [];
   private confirmationFailures = 0;
+  private lastRejectedResolutionAtMs: number | undefined;
   private nextTickAtMs = 0;
   private modelCalls = 0;
   private previousNewestFrameHash: string | undefined;
@@ -275,6 +276,7 @@ export class AgentLoop {
           paused: this.paused,
           adBreak: this.adBreak,
           frameTimestampsMs: context.frames.map((frame) => frame.timestampMs),
+          lastRejectedResolutionAtMs: this.lastRejectedResolutionAtMs,
         }) ?? undefined;
       }
 
@@ -313,6 +315,7 @@ export class AgentLoop {
               mode: this.mode,
               minGapSeconds: this.minGapSeconds, live: this.live, paused: this.paused, adBreak: this.adBreak,
               frameTimestampsMs: context.frames.map((frame) => frame.timestampMs),
+              lastRejectedResolutionAtMs: this.lastRejectedResolutionAtMs,
             }) ?? undefined;
           }
         }
@@ -516,6 +519,7 @@ export class AgentLoop {
       }
 
       await this.options.executor.restoreBetStatus(pending.previousStatus, pending.previousLockedAtMs);
+      this.lastRejectedResolutionAtMs = this.clock();
       this.clearPendingResolution();
       await this.record({
         timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,

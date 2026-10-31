@@ -61,6 +61,13 @@ describe("agent action guards", () => {
     expect(validateAction({ tool: "lock_bet", arguments: { reason: "closing" } }, context({ nowMs: 30_000, bet: activeBet }))).toBeNull();
   });
 
+  it("blocks another resolution proposal for 15 seconds after a rejection", () => {
+    const resolve: AgentAction = { tool: "resolve_bet", arguments: { outcome_index: 0, evidence: "The tracker marks the boss defeated.", reason: "The boss went down." } };
+    expect(validateAction(resolve, context({ nowMs: 34_999, bet: activeBet, lastRejectedResolutionAtMs: 20_000 })))
+      .toBe("The last proposal was rejected; wait for new evidence.");
+    expect(validateAction(resolve, context({ nowMs: 35_000, bet: activeBet, lastRejectedResolutionAtMs: 20_000 }))).toBeNull();
+  });
+
   it("requires an active bet, enough betting time or visible outcome, a valid outcome, and evidence to resolve", () => {
     const resolve: Extract<AgentAction, { tool: "resolve_bet" }> = { tool: "resolve_bet", arguments: { outcome_index: 0, evidence: "Victory text in frame 2.", reason: "The boss was defeated." } };
     expect(validateAction(resolve, context())).toContain("no active bet");

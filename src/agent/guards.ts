@@ -10,6 +10,7 @@ export interface GuardContext {
   paused: boolean;
   adBreak: boolean;
   frameTimestampsMs?: number[];
+  lastRejectedResolutionAtMs?: number | undefined;
 }
 
 export function validateAction(action: AgentAction, context: GuardContext): string | null {
@@ -42,6 +43,9 @@ export function validateAction(action: AgentAction, context: GuardContext): stri
     return null;
   }
   if (action.tool === "resolve_bet") {
+    if (context.lastRejectedResolutionAtMs !== undefined && context.nowMs - context.lastRejectedResolutionAtMs < 15_000) {
+      return "The last proposal was rejected; wait for new evidence.";
+    }
     if (context.frameTimestampsMs && !context.frameTimestampsMs.some((timestampMs) => timestampMs > bet.openedAtMs)) return "Resolution evidence must come from a frame captured after the bet opened.";
     if (!Number.isInteger(action.arguments.outcome_index) || action.arguments.outcome_index < 0 || action.arguments.outcome_index >= bet.outcomes.length) return "Outcome index is out of range.";
     if (action.arguments.evidence.trim().length === 0) return "Evidence must not be empty.";

@@ -36,8 +36,10 @@ describe("agent loop tool validation", () => {
     let nowMs = 20_000;
     let onFirstDecision!: () => void;
     let onSecondDecision!: () => void;
+    let onRejectedRetry!: () => void;
     const firstDecision = new Promise<void>((resolve) => { onFirstDecision = resolve; });
     const secondDecision = new Promise<void>((resolve) => { onSecondDecision = resolve; });
+    const rejectedRetry = new Promise<void>((resolve) => { onRejectedRetry = resolve; });
     const call = vi.fn()
       .mockResolvedValueOnce(modelResponse("resolve_bet", JSON.stringify({
         outcome_index: 0,
@@ -45,6 +47,11 @@ describe("agent loop tool validation", () => {
         reason: "The Glass-Backed Tide Wisp went down.",
       }), "proposal"))
       .mockResolvedValueOnce(modelResponse(confirmationTool, confirmationTool === "confirm_resolution" ? JSON.stringify({ outcome_index: 1, reason: "The second look shows it survived." }) : JSON.stringify({ reason: "The newer frame shows the Tide Wisp alive." }), "second-look"));
+    if (!settles) {
+      call
+        .mockResolvedValueOnce(modelResponse("resolve_bet", JSON.stringify({ outcome_index: 0, evidence: "The same target still looks dead.", reason: "The target went down." }), "repeat-proposal"))
+        .mockResolvedValueOnce(modelResponse("wait", "{}", "rejected-correction"));
+    }
     let activeBet: NonNullable<ReturnType<AgentExecutor["getAgentBetContext"]>["bet"]> | null = {
       status: "open",
       question: "Will Glass-Backed Tide Wisp be defeated?",
@@ -87,6 +94,7 @@ describe("agent loop tool validation", () => {
       onDecision: (entry) => {
         if (entry.tool === "resolve_bet") onFirstDecision();
         if (entry.tool === confirmationTool) onSecondDecision();
+        if (!settles && entry.tool === "wait") onRejectedRetry();
       },
     });
 
@@ -119,7 +127,18 @@ describe("agent loop tool validation", () => {
     expect(entries[0]).toMatchObject({ tool: "resolve_bet", arguments: { evidence: "Glass-Backed Tide Wisp shows 0 HP in the newest frame." }, guardResult: "accepted: pending second-look confirmation" });
     expect(entries[1]?.tool).toBe(confirmationTool);
     if (settles) expect(entries[1]?.arguments.moment).toEqual({ clipId: "clip-1", clipUrl: "https://clips.twitch.tv/clip-1", markerPositionSeconds: 88 });
-    if (!settles) expect(overlay.getState().bet?.status).toBe("open");
+    if (!settles) {
+      expect(overlay.getState().bet?.status).toBe("open");
+      nowMs = 26_000;
+      frames.push({ ...currentFrame, timestampMs: nowMs, sha256: "frame-after-reject" });
+      loop.setLive(true);
+      await rejectedRetry;
+      await loop.stop();
+      expect(call).toHaveBeenCalledTimes(4);
+      expect(call.mock.calls[3]?.[1]).toMatchObject({ outputs: [{ error: "The last proposal was rejected; wait for new evidence." }] });
+      const lastRow = JSON.parse((await readFile(decisions.filePath, "utf8")).trim().split("\n").at(-1)!) as { tool: string; guardResult: string };
+      expect(lastRow).toMatchObject({ tool: "wait", guardResult: expect.stringContaining("The last proposal was rejected; wait for new evidence.") });
+    }
   });
 
   it("returns one invalid action to the model and waits if the correction is still invalid", async () => {

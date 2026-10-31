@@ -601,6 +601,41 @@ game's final screen, named after the last opponent, then has to refund it. Appen
 Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Fixes from the live demo stream (2026-10-31)
+
+```
+Live stream on jonathansolvesproblems, 25 min, Orvandel dungeon The Ninth Forge, 190 model
+calls. 6 bets: 3 settled correctly with clips and markers (The Bellows, Slag Golem, Ysolde
+Coalheart), 0 wrong payouts. Four problems from data/decisions.jsonl and data/frames:
+
+1. False open on a conversation. It opened "Will Forgemaster Dunn be defeated this pull?"
+   while I was talking to him: friendly quest-giver, dialogue window open with a quest
+   list, green nameplate, full health. Append to the opening rules in SYSTEM_PROMPT:
+   "A dialogue window, a quest list, or a friendly (green) nameplate means a conversation,
+   not a fight. Only open on an enemy that is in combat or about to be pulled."
+2. Bets about what comes next. It opened "Will the next scene be combat in The Ninth
+   Forge?" from a chapter title card. Append: "Only open a bet about a fight or attempt
+   whose outcome will be decided on screen: who wins, whether a named enemy dies, whether
+   the player survives. Never bet on what the next scene will be."
+3. A real kill with no banner in view. Quenchmaster Hroda died while I had the dungeon map
+   open. The map went from "0 of 3 defeated" to "1 of 3 defeated" with her node marked
+   defeated, and the log showed her death line and loot. The second look rejected it
+   twice and the bet was refunded. In RESOLUTION_CONFIRMATION_INSTRUCTIONS rule 1, add to
+   the list of proofs: "a dungeon map or objective tracker that newly marks the exact
+   subject as defeated (for example its count goes up after the bet opened)". I added the
+   case eval/confirm-cases/orvandel-map-kill/ from these frames; commit it. I will run
+   eval:confirm to check it confirms and the other 8 cases still pass.
+4. Proposal loops. After a reject, the first look proposed the same result again on the
+   next tick, three times in a row, each costing a gpt-6.1-sol call. Code limit: after a
+   reject_resolution, resolve_bet is refused for 15 s with the error "The last proposal was
+   rejected; wait for new evidence." It goes through the normal correction path. Log it.
+
+Also: HelixClient.sendChatMessage ignores is_sent and drop_reason in the Send Chat Message
+response. If is_sent is false, log the drop reason and treat it as not sent.
+
+Tests for 4 and the chat drop. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

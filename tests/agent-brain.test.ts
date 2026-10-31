@@ -28,6 +28,16 @@ describe("agent Responses API request", () => {
     expect(SYSTEM_PROMPT).toContain("wait until different names or a fresh clock with no moves played appear.");
   });
 
+  it("keeps conversations and next-scene bets out of the opening choices", () => {
+    expect(SYSTEM_PROMPT).toContain("A dialogue window, a quest list, or a friendly (green) nameplate means a conversation, not a fight.");
+    expect(SYSTEM_PROMPT).toContain("Only open on an enemy that is in combat or about to be pulled.");
+    expect(SYSTEM_PROMPT).toContain("Never bet on what the next scene will be.");
+  });
+
+  it("accepts newly defeated dungeon map or objective tracker evidence on second look", () => {
+    expect(RESOLUTION_CONFIRMATION_INSTRUCTIONS).toContain("a dungeon map or objective tracker that newly marks the exact subject as defeated");
+  });
+
   it("uses strict required tools, image detail, defaults, and low reasoning for GPT-5", async () => {
     const requests: unknown[] = [];
     const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;

@@ -32,11 +32,17 @@ export class HelixClient {
 
   async sendChatMessage(broadcasterId: string, senderId: string, message: string): Promise<string | undefined> {
     // Requires user:write:chat. Twitch accepts the broadcaster and sending user IDs.
-    const response = await this.request<{ data: Array<{ message_id: string }> }>("/chat/messages", {
+    const response = await this.request<{ data: Array<{ message_id: string; is_sent?: boolean; drop_reason?: { code?: string; message?: string } | null }> }>("/chat/messages", {
       method: "POST",
       body: JSON.stringify({ broadcaster_id: broadcasterId, sender_id: senderId, message }),
     });
-    return response.data[0]?.message_id;
+    const result = response.data[0];
+    if (result?.is_sent === false) {
+      const reason = result.drop_reason?.message ?? result.drop_reason?.code ?? "no reason provided";
+      console.warn(`Twitch dropped chat message: ${reason}`);
+      return undefined;
+    }
+    return result?.message_id;
   }
 
   async createClip(broadcasterId: string): Promise<TwitchClip | undefined> {

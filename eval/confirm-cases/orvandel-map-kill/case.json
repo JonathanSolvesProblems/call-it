@@ -1,0 +1,12 @@
+{
+  "source": "Live demo stream 2026-10-31 21:23 UTC, Orvandel dungeon The Ninth Forge. Quenchmaster Hroda Ironhand died while the dungeon map was open: the map goes from '0 of 3 defeated' (0.jpg) to '1 of 3 defeated' with her node marked defeated (4.jpg). The live second look rejected this and the bet was refunded.",
+  "question": "Will Quenchmaster Hroda Ironhand be defeated?",
+  "outcomes": ["Hroda down", "Party wipes", "Reset"],
+  "outcomeIndex": 0,
+  "evidence": "The dungeon map shows Quenchmaster Hroda Ironhand's node marked defeated and the progress went from 0 of 3 to 1 of 3 defeated.",
+  "reason": "Hroda has been taken down.",
+  "proposal": ["0.jpg", "2.jpg", "4.jpg"],
+  "newer": ["6.jpg", "8.jpg", "10.jpg"],
+  "expected": "confirm",
+  "expectedOutcomeIndex": 0
+}
