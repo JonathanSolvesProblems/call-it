@@ -550,6 +550,20 @@ Tests for 1 and 2 (mode selection, batched stake replies, rejection reasons, pay
 Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Two visual fixes (2026-10-31)
+
+```
+I screenshotted overlay:demo at each step. Both new screens work. Two visual fixes:
+
+1. Overlay winner panel: the question and outcome rows underneath show through the result
+   panel (its background is 94% opaque), so "WINNER They back away" sits on ghost text.
+   Make the panel fully opaque, or hide the card body while the result is shown.
+2. Debug page: the "Current bet" panel is a tall box with two lines in it. Make it a compact
+   strip that fits its content, so the latest frame and the decision list sit higher.
+
+No logic changes. Check with npm run overlay:demo, run typecheck and tests, commit.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.
