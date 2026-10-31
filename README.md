@@ -101,4 +101,4 @@ Call It runs bets in chat mode only. Native Channel Points Predictions for Affil
 
 ## How it was built
 
-The project was built in OpenAI Codex in one main thread (session ID: `01a175ec-d56d-77c1-b2ca-0b079719d3ee`). Planning, prompt review, live testing, and evaluation runs were done with Claude Code. The prompts sent to Codex are recorded in [CODEX_PROMPTS.md](CODEX_PROMPTS.md).
+All product code was written in OpenAI Codex in one main thread (session ID: `01a175ec-d56d-77c1-b2ca-0b079719d3ee`): 18 prompts, 26 commits, 72 tests, working from [SPEC.md](SPEC.md) and [AGENTS.md](AGENTS.md). I used Claude Code alongside it for planning, prompt review, live testing and the evaluation runs. Every prompt sent to Codex is in [CODEX_PROMPTS.md](CODEX_PROMPTS.md), and the commit history shows the build step by step.
