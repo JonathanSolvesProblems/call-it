@@ -18,6 +18,7 @@ const frames = await Promise.all(paths.map(async (path, index) => {
 const context: AgentContext = {
   nowMs,
   mode: "chat",
+  secondsUntilNewBetAllowed: 0,
   frames,
   bet: null,
   lastOpenedAtMs: null,

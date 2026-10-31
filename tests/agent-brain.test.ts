@@ -7,6 +7,7 @@ import type { AgentContext } from "../src/agent/types.js";
 const context: AgentContext = {
   nowMs: 1000,
   mode: "chat",
+  secondsUntilNewBetAllowed: 0,
   frames: [{ timestampMs: 1000, jpegBase64: "ZmFrZQ==", sha256: "hash-1" }],
   bet: null,
   lastOpenedAtMs: null,
@@ -28,12 +29,35 @@ describe("agent Responses API request", () => {
 
     expect(brain.model).toBe("gpt-5.4-mini");
     expect(brain.imageDetail).toBe("low");
-    const request = requests[0] as { tool_choice: string; tools: Array<{ strict: boolean }>; reasoning: { effort: string }; input: Array<{ content: Array<{ type: string; detail?: string }> }>; };
+    const request = requests[0] as { tool_choice: string; tools: Array<{ strict: boolean }>; reasoning: { effort: string }; input: Array<{ content: Array<{ type: string; detail?: string; text?: string }> }>; };
     expect(request.tool_choice).toBe("required");
     expect(request.tools).toHaveLength(5);
     expect(request.tools.every((tool) => tool.strict)).toBe(true);
     expect(request.reasoning).toEqual({ effort: "low" });
     expect(request.input[0]?.content[1]).toMatchObject({ type: "input_image", detail: "low" });
+    expect(request.input[0]?.content[0]?.text).toContain("Seconds until a new bet is allowed: 0");
+  });
+
+  it("uses only confirmation tools and includes the proposed evidence on the second look", async () => {
+    const requests: unknown[] = [];
+    const client = { responses: { create: vi.fn(async (request: unknown) => { requests.push(request); return response(); }) } } as unknown as OpenAI;
+    const brain = new AgentBrain({ OPENAI_API_KEY: "test-key" }, client);
+    await brain.call({
+      ...context,
+      pendingResolution: {
+        outcomeIndex: 0,
+        outcome: "It dies",
+        evidence: "Glass-Backed Tide Wisp shows 0 HP in the new frame.",
+        reason: "The Glass-Backed Tide Wisp went down.",
+        proposedAtMs: 1000,
+        previousStatus: "locked",
+        latestFrameTimestampMs: 1000,
+      },
+    });
+    const request = requests[0] as { tools: Array<{ name: string }>; instructions: string; input: Array<{ content: Array<{ text?: string }> }> };
+    expect(request.tools.map((tool) => tool.name)).toEqual(["confirm_resolution", "reject_resolution"]);
+    expect(request.instructions).toContain("second-look confirmation");
+    expect(request.input[0]?.content[0]?.text).toContain("Glass-Backed Tide Wisp shows 0 HP");
   });
 
   it("omits reasoning for non-GPT-5/6 models and sends low effort for GPT-6", async () => {

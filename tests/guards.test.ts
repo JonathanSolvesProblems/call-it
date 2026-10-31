@@ -28,7 +28,7 @@ describe("agent action guards", () => {
 
   it("allows only one active bet and enforces the minimum gap", () => {
     expect(validateAction(openAction(), context({ bet: activeBet }))).toContain("already active");
-    expect(validateAction(openAction({ reason: "A risky attempt is starting." }), context({ nowMs: 179_999, lastOpenedAtMs: 0 }))).toContain("180 seconds");
+    expect(validateAction(openAction({ question: "Does the attempt succeed?", reason: "A risky attempt is starting." }), context({ nowMs: 179_999, lastOpenedAtMs: 0 }))).toContain("180 seconds");
     expect(validateAction(openAction({ reason: "Boss appears on screen." }), context({ nowMs: 60_000, lastOpenedAtMs: 0 }))).toBeNull();
   });
 
@@ -62,14 +62,16 @@ describe("agent action guards", () => {
   });
 
   it("requires an active bet, enough betting time or visible outcome, a valid outcome, and evidence to resolve", () => {
-    const resolve: AgentAction = { tool: "resolve_bet", arguments: { outcome_index: 0, evidence: "Victory text in frame 2." } };
+    const resolve: Extract<AgentAction, { tool: "resolve_bet" }> = { tool: "resolve_bet", arguments: { outcome_index: 0, evidence: "Victory text in frame 2.", reason: "The boss was defeated." } };
     expect(validateAction(resolve, context())).toContain("no active bet");
     expect(validateAction({ ...resolve, arguments: { ...resolve.arguments, evidence: "The fight continues." } }, context({ bet: { ...activeBet, openedAtMs: 15_000 } }))).toContain("30 seconds");
     for (const evidence of ["Nameplate marked Dead", "Nameplate shows 0 HP", "Combat log says killed", "Experience awarded", "Loot dropped"]) {
       expect(validateAction({ ...resolve, arguments: { ...resolve.arguments, evidence } }, context({ bet: { ...activeBet, openedAtMs: 15_000 } }))).toBeNull();
     }
-    expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 2, evidence: "visible" } }, context({ bet: activeBet }))).toContain("out of range");
-    expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 0, evidence: " " } }, context({ bet: activeBet }))).toContain("Evidence");
+    expect(validateAction(resolve, context({ bet: activeBet, frameTimestampsMs: [0] }))).toContain("after the bet opened");
+    expect(validateAction(resolve, context({ bet: activeBet, frameTimestampsMs: [1] }))).toBeNull();
+    expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 2, evidence: "visible", reason: "invalid" } }, context({ bet: activeBet }))).toContain("out of range");
+    expect(validateAction({ tool: "resolve_bet", arguments: { outcome_index: 0, evidence: " ", reason: "invalid" } }, context({ bet: activeBet }))).toContain("Evidence");
     expect(validateAction(resolve, context({ bet: activeBet }))).toBeNull();
   });
 

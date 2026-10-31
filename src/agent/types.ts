@@ -9,7 +9,7 @@ export type AgentAction =
   | { tool: "wait"; arguments: Record<string, never> }
   | { tool: "open_bet"; arguments: OpenBetAction }
   | { tool: "lock_bet"; arguments: { reason: string } }
-  | { tool: "resolve_bet"; arguments: { outcome_index: number; evidence: string } }
+  | { tool: "resolve_bet"; arguments: { outcome_index: number; evidence: string; reason: string } }
   | { tool: "cancel_bet"; arguments: { reason: string } };
 
 export interface ActiveBetContext {
@@ -31,4 +31,15 @@ export interface AgentContext {
   decisions: Array<Record<string, unknown>>;
   memorySummary: string;
   adBreak: boolean;
+  secondsUntilNewBetAllowed: number;
+  pendingResolution?: {
+    outcomeIndex: number;
+    outcome: string;
+    evidence: string;
+    reason: string;
+    proposedAtMs: number;
+    previousStatus: "open" | "locked";
+    previousLockedAtMs?: number;
+    latestFrameTimestampMs: number;
+  };
 }

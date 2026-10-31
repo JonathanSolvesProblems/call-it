@@ -9,9 +9,10 @@ export interface OverlayOutcome {
 export interface OverlayBet {
   question: string;
   outcomes: OverlayOutcome[];
-  status: BetStatus;
+  status: BetStatus | "checking";
   secondsLeft: number;
   winningOutcomeIndex?: number;
+  proposedOutcomeIndex?: number;
 }
 
 export interface OverlayDecision {

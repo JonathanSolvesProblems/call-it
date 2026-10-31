@@ -40,15 +40,16 @@ export const CALLIT_TOOLS = [
   {
     type: "function",
     name: "resolve_bet",
-    description: "Resolve the active bet only when a supplied frame visibly proves one outcome.",
+    description: "Propose a resolution only when new evidence about the exact named subject proves one outcome. A second model call will confirm or reject it before settlement.",
     strict: true,
     parameters: {
       type: "object",
       properties: {
         outcome_index: { type: "integer", minimum: 0 },
         evidence: { type: "string" },
+        reason: { type: "string", description: "Short viewer-facing explanation. Do not mention frames or internal evidence." },
       },
-      required: ["outcome_index", "evidence"],
+      required: ["outcome_index", "evidence", "reason"],
       additionalProperties: false,
     },
   },
@@ -63,5 +64,22 @@ export const CALLIT_TOOLS = [
       required: ["reason"],
       additionalProperties: false,
     },
+  },
+] satisfies OpenAI.Responses.FunctionTool[];
+
+export const RESOLUTION_CONFIRMATION_TOOLS = [
+  {
+    type: "function",
+    name: "confirm_resolution",
+    description: "Confirm the proposed result only if newer frames show the exact bet subject's outcome.",
+    strict: true,
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "reject_resolution",
+    description: "Reject the proposal if the subject or result is uncertain, mismatched, or not newly visible.",
+    strict: true,
+    parameters: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"], additionalProperties: false },
   },
 ] satisfies OpenAI.Responses.FunctionTool[];

@@ -124,6 +124,15 @@ export class ChatBetLedger {
     return bet;
   }
 
+  async restoreStatus(status: "open" | "locked", lockedAtMs?: number): Promise<void> {
+    const bet = this.getActiveBet();
+    if (!bet) return;
+    bet.status = status;
+    if (status === "open") delete bet.lockedAtMs;
+    else if (lockedAtMs !== undefined) bet.lockedAtMs = lockedAtMs;
+    await this.save();
+  }
+
   async resolve(winningOutcomeIndex: number, nowMs = Date.now()): Promise<{ bet: ChatBet; payout: PayoutResult }> {
     const bet = this.getActiveBet();
     if (!bet) throw new Error("There is no active bet to resolve.");

@@ -8,6 +8,7 @@ export type SendChatMessage = (message: string) => Promise<void>;
 export class ChatBetService {
   private paused = false;
   private adBreak = false;
+  private nextNoBetReplyAtMs = 0;
 
   constructor(private readonly ledger: ChatBetLedger, private readonly send: SendChatMessage, private readonly overlay: OverlayServer) {}
 
@@ -50,7 +51,14 @@ export class ChatBetService {
     if (!command) return;
     if (!this.ledger.markMessageSeen(messageId)) return;
     const bet = this.ledger.getActiveBet();
-    if (!bet || this.paused || this.adBreak || command.outcomeIndex >= bet.outcomes.length) return;
+    if (!bet) {
+      if (nowMs >= this.nextNoBetReplyAtMs) {
+        this.nextNoBetReplyAtMs = nowMs + 30_000;
+        await this.sendSafely("No bet open right now");
+      }
+      return;
+    }
+    if (this.paused || this.adBreak || command.outcomeIndex >= bet.outcomes.length) return;
     const result = await this.ledger.placeStake(messageId, userId, command, nowMs, true);
     if (result.accepted) this.overlay.update({ bet: this.ledger.overlayBet(nowMs) });
   }
@@ -64,29 +72,35 @@ export class ChatBetService {
 
   async lockBet(reason: string, nowMs = Date.now()): Promise<void> {
     const bet = await this.ledger.lock(nowMs);
-    const pools = this.ledger.pools().map((pool, index) => `!${index + 1} ${pool.points.toLocaleString()} pts (${pool.bettors})`).join(" | ");
+    const pools = this.ledger.pools();
+    const poolText = pools.map((pool, index) => `!${index + 1} ${pool.points.toLocaleString()} pts (${pool.bettors})`).join(" | ");
     this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
-    await this.sendSafely(trimChat(`LOCKED: ${pools || bet.question}`));
+    if (pools.some((pool) => pool.bettors > 0)) await this.sendSafely(trimChat(`LOCKED: ${poolText || bet.question} | ${reason}`));
   }
 
-  async resolveBet(outcomeIndex: number, evidence: string, nowMs = Date.now()): Promise<void> {
-    if (this.ledger.currentBet?.status === "open") await this.lockBet("Outcome is ready to resolve.", nowMs);
+  async restoreBetStatus(status: "open" | "locked", lockedAtMs?: number): Promise<void> {
+    await this.ledger.restoreStatus(status, lockedAtMs);
+    this.overlay.update({ bet: this.ledger.overlayBet() });
+  }
+
+  async resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs = Date.now()): Promise<void> {
+    if (this.ledger.currentBet?.status === "open") await this.lockBet(reason, nowMs);
     const { bet, payout } = await this.ledger.resolve(outcomeIndex, nowMs);
     const outcome = bet.outcomes[outcomeIndex] ?? "Winning outcome";
     if (Object.keys(bet.stakes).length === 0) {
-      this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: evidence });
+      this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
       await this.sendSafely(trimChat(`${outcome}! No one bet on this one.`));
       return;
     }
     if (payout.refunds) {
-      this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: evidence });
+      this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
       await this.sendSafely("Refunded: no points were placed on the winning outcome.");
       return;
     }
     const winners = payout.winners;
     const biggestWin = winners.reduce((best, winner) => Math.max(best, winner.payout), 0);
-    this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: evidence });
-    await this.sendSafely(trimChat(`Resolved: ${outcome} | ${winners.length} winners | biggest win ${biggestWin.toLocaleString()} pts`));
+    this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
+    await this.sendSafely(trimChat(`Resolved: ${outcome} | ${winners.length} winners | biggest win ${biggestWin.toLocaleString()} pts | ${reason}`));
   }
 
   async cancelBet(reason: string, nowMs = Date.now()): Promise<void> {
@@ -95,13 +109,14 @@ export class ChatBetService {
     await this.sendSafely(trimChat(`Refunded: ${reason}`));
   }
 
-  async checkDeadlines(nowMs: number, maxBetSeconds: number): Promise<"timeout" | "window_end" | null> {
+  async checkDeadlines(nowMs: number, maxBetSeconds: number, resolutionPending = false): Promise<"timeout" | "window_end" | null> {
     const bet = this.ledger.getActiveBet();
     if (!bet) return null;
     if (nowMs - bet.openedAtMs >= maxBetSeconds * 1000) {
       await this.cancelBet("bet timed out.", nowMs);
       return "timeout";
     }
+    if (resolutionPending) return null;
     if (bet.status === "open" && nowMs >= bet.expiresAtMs) {
       await this.lockBet("Bet window ended.", nowMs);
       return "window_end";

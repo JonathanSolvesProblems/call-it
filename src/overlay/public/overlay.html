@@ -112,7 +112,7 @@
       text(document.querySelector('#question'), bet.question);
       const liveState = document.querySelector('#liveState');
       const isLocked = bet.status === 'locked';
-      text(liveState, isLocked ? 'LOCKED' : bet.status === 'open' ? 'LIVE' : bet.status.toUpperCase());
+      text(liveState, bet.status === 'checking' ? 'CHECKING...' : isLocked ? 'LOCKED' : bet.status === 'open' ? 'LIVE' : bet.status.toUpperCase());
       liveState.classList.toggle('locked', isLocked);
       const total = bet.outcomes.reduce((sum, outcome) => sum + outcome.points, 0) || 1;
       outcomes.replaceChildren(...bet.outcomes.map((outcome, index) => {
@@ -127,7 +127,7 @@
       }));
       const timer = document.querySelector('#timer');
       timer.classList.toggle('locked', isLocked);
-      text(timer, isLocked ? 'LOCKED' : Math.max(0, bet.secondsLeft) + ' SEC');
+      text(timer, bet.status === 'checking' ? 'CHECKING...' : isLocked ? 'LOCKED' : Math.max(0, bet.secondsLeft) + ' SEC');
       text(document.querySelector('#decision'), state.lastDecisionReason || 'Watching the moment…');
       card.classList.add('visible');
       if (bet.status === 'resolved') {
