@@ -126,11 +126,11 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
   if (matched.length > 1) return null;
 
   const reserved = new Set([
-    "yes", "no", "draw", "stalemate", "tie", "win", "wins", "won", "winning", "lose", "loses", "lost", "losing",
+    "yes", "no", "draw", "stalemate", "tie", "win", "wins", "won", "winning", "lose", "loses", "loss", "lost", "losing",
     "streamer", "player", "opponent", "other", "white", "black", "the", "a", "an", "vs", "versus", "and", "will",
   ]);
   const knownNameWords = new Set(Object.values(players).flatMap((aliases) => aliases.flatMap((alias) => alias.split(" "))));
-  const resultVerbIndex = words.findIndex((word) => ["win", "wins", "won", "winning", "lose", "loses", "lost", "losing"].includes(word));
+  const resultVerbIndex = words.findIndex((word) => ["win", "wins", "won", "winning", "lose", "loses", "loss", "lost", "losing"].includes(word));
   const nameCandidates = resultVerbIndex < 0 ? words : words.slice(0, resultVerbIndex);
   if (nameCandidates.some((word) => word.length >= 3 && !reserved.has(word) && !knownNameWords.has(word))) return null;
   if ([...outcome.matchAll(/\b[A-Z][a-zA-Z]{2,}\b/g)].some(([word]) => {
@@ -146,6 +146,13 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
   }
 
   if (words.includes("draw") || words.includes("stalemate") || words.includes("tie")) return new Set(["draw"]);
+  if (words.length === 1 && ["win", "wins", "lose", "loses", "loss"].includes(words[0]!)) {
+    const questionResultSet = questionResult(question, game, players);
+    if (!questionResultSet || questionResultSet.size !== 1 || questionResultSet.has("draw")) return null;
+    const playerResult = [...questionResultSet][0]!;
+    const asksForLoss = ["lose", "loses", "loss"].includes(words[0]!);
+    return new Set([asksForLoss ? playerResult === "white" ? "black" : "white" : playerResult]);
+  }
   let winnerColor = matched[0];
   if (words.includes("streamer") || words.includes("player")) {
     if (winnerColor) return null;
@@ -154,7 +161,7 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
     if (winnerColor) return null;
     winnerColor = game.white.toLowerCase() === game.streamer.toLowerCase() ? "black" : game.black.toLowerCase() === game.streamer.toLowerCase() ? "white" : undefined;
   }
-  const hasLose = words.some((word) => ["lose", "loses", "lost", "losing"].includes(word));
+  const hasLose = words.some((word) => ["lose", "loses", "loss", "lost", "losing"].includes(word));
   const hasWin = words.some((word) => ["win", "wins", "won", "winning"].includes(word));
   if (hasLose && hasWin) return null;
   if (hasLose && winnerColor) winnerColor = winnerColor === "white" ? "black" : "white";
@@ -169,7 +176,7 @@ export function mapOutcomeToResults(outcome: string, question: string, game: Che
 function questionResult(question: string, game: ChessGame, players: Record<"white" | "black", string[]>): Set<ChessGame["result"]> | null {
   const normalized = normalize(question);
   const drawMatch = /\b(draw|stalemate|tie)\b/.exec(normalized);
-  const verbMatch = /\b(win|wins|won|winning|lose|loses|lost|losing)\b/.exec(normalized);
+  const verbMatch = /\b(win|wins|won|winning|lose|loses|loss|lost|losing)\b/.exec(normalized);
   if (drawMatch && verbMatch) return null;
   const match = drawMatch && (!verbMatch || drawMatch.index < verbMatch.index) ? drawMatch : verbMatch;
   if (!match || match.index === undefined) return null;
@@ -186,7 +193,7 @@ function questionResult(question: string, game: ChessGame, players: Record<"whit
   }
   if (match[0] && /draw|stalemate|tie/.test(match[0])) return new Set(["draw"]);
   if (!subjectColor) return null;
-  const isLoss = /lose|loses|lost|losing/.test(match[0]!);
+  const isLoss = /lose|loses|loss|lost|losing/.test(match[0]!);
   const resultColor = isLoss ? subjectColor === "white" ? "black" : "white" : subjectColor;
   return new Set([resultColor]);
 }

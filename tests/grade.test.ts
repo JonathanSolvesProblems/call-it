@@ -29,11 +29,20 @@ describe("chess outcome mapping", () => {
     expect(mapOutcomeToResults("No", "Will Anna draw?", nameGame)).toEqual(new Set(["white", "black"]));
   });
 
+  it("maps one-word result outcomes against the player named in the question", () => {
+    const outcomes = ["Win", "Wins", "Draw", "Loss", "Lose", "Loses"];
+    const expected = ["white", "white", "draw", "black", "black", "black"];
+    outcomes.forEach((outcome, index) => {
+      expect(mapOutcomeToResults(outcome, "Will AnnaCramling win this game?", nameGame)).toEqual(new Set([expected[index]]));
+    });
+    expect(mapOutcomeToResults("Loss", "Will AnnaCramling lose this game?", nameGame)).toEqual(new Set(["white"]));
+  });
+
   it("leaves third-party names and outcomes that match both players unmappable", () => {
     expect(mapOutcomeToResults("Bob wins", "Who wins?", nameGame)).toBeNull();
     expect(mapOutcomeToResults("Anna or Jan wins", "Who wins?", nameGame)).toBeNull();
-    expect(mapOutcomeToResults("Wins", "Will Anna win?", nameGame)).toBeNull();
-    expect(mapOutcomeToResults("Lose", "Will Anna win?", nameGame)).toBeNull();
+    expect(mapOutcomeToResults("Wins", "Who wins?", nameGame)).toBeNull();
+    expect(mapOutcomeToResults("Lose", "Who wins?", nameGame)).toBeNull();
   });
 
   it("matches a bet opened up to 300 seconds before the game, but an active previous game wins", () => {
