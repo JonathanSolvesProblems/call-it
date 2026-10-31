@@ -1,21 +1,83 @@
 {
-  "generatedAt": "2026-10-31T12:29:34.269Z",
-  "model": "gpt-5.4-mini",
+  "generatedAt": "2026-10-31T19:23:43.816Z",
+  "model": "gpt-6.1-sol",
   "results": [
+    {
+      "id": "chess-draw-2",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 2,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "chess-flipped-black-to-move-4",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 0,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "chess-flipped-checkmate-9",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 1,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "chess-flipped-resignation-6",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 1,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "chess-white-won-12",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 0,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "chess-you-won-13",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 1,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
     {
       "id": "true-kill-tide-wisp",
       "expected": "confirm",
-      "runs": 10,
-      "confirmCount": 10,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
       "rejectCount": 0,
       "invalidCount": 0
     },
     {
       "id": "wrong-payout-wisp-alive",
       "expected": "reject",
-      "runs": 10,
+      "runs": 5,
       "confirmCount": 0,
-      "rejectCount": 10,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 5,
       "invalidCount": 0
     }
   ]
