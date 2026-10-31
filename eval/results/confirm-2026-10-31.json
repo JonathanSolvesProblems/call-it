@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T19:23:43.816Z",
+  "generatedAt": "2026-10-31T21:44:01.229Z",
   "model": "gpt-6.1-sol",
   "results": [
     {
@@ -56,6 +56,16 @@
       "id": "chess-you-won-13",
       "expected": "confirm",
       "expectedOutcomeIndex": 1,
+      "runs": 5,
+      "confirmCount": 5,
+      "wrongOutcomeCount": 0,
+      "rejectCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "id": "orvandel-map-kill",
+      "expected": "confirm",
+      "expectedOutcomeIndex": 0,
       "runs": 5,
       "confirmCount": 5,
       "wrongOutcomeCount": 0,

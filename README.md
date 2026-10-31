@@ -90,7 +90,7 @@ Measured on real Twitch VODs of Anna Cramling playing chess.com blitz. [eval/gra
 - The held-out VOD was never used for tuning. It ran on commit `0215e17`: 2,179 model calls, 11.3M input tokens.
 - Both held-out misses were bets opened after a game had already ended. A prompt rule added after the run targets this; the held-out run was not repeated, so it stays an untuned number.
 - The second look on `gpt-6.1-sol` stepped in on 11 of 18 proposed payouts in the held-out run: it corrected the winner 5 times and rejected 6 payouts that used another game's result. All 11 were right by the record.
-- `npm run eval:confirm` passes 40 of 40 checks on 8 saved cases (6 chess, 2 from my own game).
+- `npm run eval:confirm` passes 45 of 45 checks on 9 saved cases (6 chess, 3 from my own game, including a live-stream kill seen only on the dungeon map).
 - Limits of this measurement: one streamer and one site, so the held-out VOD tests unseen games, not an unseen layout (other chess streamers' VODs were subscriber-only). The grader was fixed after seeing the held-out run; the fixes made it stricter on timing and tolerant of misspelled names. The first grade is kept in [grade-before-grader-fix.json](eval/results/2893451280-heldout/grade-before-grader-fix.json) (7 of 7 matched).
 
 Files: [eval/results/2893451280-heldout/](eval/results/2893451280-heldout/) and [eval/results/2912243465-run1/](eval/results/2912243465-run1/), each with the bets, the full decision log and `grade-final.json`.
