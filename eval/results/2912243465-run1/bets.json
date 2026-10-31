@@ -1,0 +1,511 @@
+[
+  {
+    "question": "Who wins this Chess.com game?",
+    "outcomes": [
+      "White wins",
+      "Black wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T15:58:16.000Z",
+      "vodOffsetSeconds": 56
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:01:04.000Z",
+      "vodOffsetSeconds": 224
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:10:16.000Z",
+      "vodOffsetSeconds": 776
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Black wins"
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "White wins",
+      "Black wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:10:24.000Z",
+      "vodOffsetSeconds": 784
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:20:12.000Z",
+      "vodOffsetSeconds": 1372
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:21:36.000Z",
+      "vodOffsetSeconds": 1456
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 2,
+      "outcome": "Draw"
+    }
+  },
+  {
+    "question": "Who wins this game: Efe Aynaoglu or Anna Cramling?",
+    "outcomes": [
+      "Efe wins",
+      "Anna wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:22:08.000Z",
+      "vodOffsetSeconds": 1488
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:23:04.000Z",
+      "vodOffsetSeconds": 1544
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:24:20.000Z",
+      "vodOffsetSeconds": 1620
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The board shown is a different game, so this bet cannot be settled from the current action."
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "Harold Wanyama",
+      "AnnaCramling",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:25:56.000Z",
+      "vodOffsetSeconds": 1716
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:28:44.000Z",
+      "vodOffsetSeconds": 1884
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:32:00.000Z",
+      "vodOffsetSeconds": 2080
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "AnnaCramling"
+    }
+  },
+  {
+    "question": "Will AnnaCramling win this game?",
+    "outcomes": [
+      "Win",
+      "Draw",
+      "Loss"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:32:28.000Z",
+      "vodOffsetSeconds": 2108
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:33:48.000Z",
+      "vodOffsetSeconds": 2188
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:33:52.000Z",
+      "vodOffsetSeconds": 2192
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 2,
+      "outcome": "Loss"
+    }
+  },
+  {
+    "question": "Will Anna Cramling win this game?",
+    "outcomes": [
+      "Anna wins",
+      "Zachary wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:36:48.000Z",
+      "vodOffsetSeconds": 2368
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:41:36.000Z",
+      "vodOffsetSeconds": 2656
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:42:12.000Z",
+      "vodOffsetSeconds": 2692
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna wins"
+    }
+  },
+  {
+    "question": "What is the result of Anna Cramling vs Zachary Calderon?",
+    "outcomes": [
+      "Anna wins",
+      "Zachary wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:42:40.000Z",
+      "vodOffsetSeconds": 2720
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:43:52.000Z",
+      "vodOffsetSeconds": 2792
+    },
+    "endedAt": {
+      "iso": "2026-10-27T16:46:52.000Z",
+      "vodOffsetSeconds": 2972
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The result isn’t clearly shown yet, so this bet should be refunded."
+    }
+  },
+  {
+    "question": "Will Anna Cramling win this game?",
+    "outcomes": [
+      "Anna wins",
+      "Draw",
+      "Zachary wins"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T16:47:16.000Z",
+      "vodOffsetSeconds": 2996
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T16:49:00.000Z",
+      "vodOffsetSeconds": 3100
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:01:28.000Z",
+      "vodOffsetSeconds": 3848
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna wins"
+    }
+  },
+  {
+    "question": "Who wins this game: Anna Cramling or Ayan Allahverdiy... ?",
+    "outcomes": [
+      "Anna",
+      "Ayan",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:03:32.000Z",
+      "vodOffsetSeconds": 3972
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T17:08:28.000Z",
+      "vodOffsetSeconds": 4268
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:11:28.000Z",
+      "vodOffsetSeconds": 4448
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna"
+    }
+  },
+  {
+    "question": "Who will win this game: Anna Cramling or Ayan Allahverdiyeva?",
+    "outcomes": [
+      "Anna",
+      "Ayan",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:11:52.000Z",
+      "vodOffsetSeconds": 4472
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T17:13:00.000Z",
+      "vodOffsetSeconds": 4540
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:22:32.000Z",
+      "vodOffsetSeconds": 5112
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna"
+    }
+  },
+  {
+    "question": "Who wins this game between Anna Cramling and Tapson67?",
+    "outcomes": [
+      "Anna wins",
+      "Draw",
+      "Tapson67 wins"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:22:44.000Z",
+      "vodOffsetSeconds": 5124
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T17:25:44.000Z",
+      "vodOffsetSeconds": 5304
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:32:40.000Z",
+      "vodOffsetSeconds": 5720
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The visible game names don’t match the bet, so this result can’t be confirmed."
+    }
+  },
+  {
+    "question": "What is the result of this game?",
+    "outcomes": [
+      "White wins",
+      "Draw",
+      "Black wins"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:33:04.000Z",
+      "vodOffsetSeconds": 5744
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T17:34:52.000Z",
+      "vodOffsetSeconds": 5852
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:35:12.000Z",
+      "vodOffsetSeconds": 5872
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "White wins"
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "White",
+      "Black",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:43:44.000Z",
+      "vodOffsetSeconds": 6384
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T17:45:28.000Z",
+      "vodOffsetSeconds": 6488
+    },
+    "endedAt": {
+      "iso": "2026-10-27T17:51:24.000Z",
+      "vodOffsetSeconds": 6844
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "White"
+    }
+  },
+  {
+    "question": "How does this Chess.com game end?",
+    "outcomes": [
+      "White wins",
+      "Black wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T17:52:28.000Z",
+      "vodOffsetSeconds": 6908
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:01:52.000Z",
+      "vodOffsetSeconds": 7472
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:03:28.000Z",
+      "vodOffsetSeconds": 7568
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Black wins"
+    }
+  },
+  {
+    "question": "Who wins this game: Vladimir Sofronie or Anna Cramling?",
+    "outcomes": [
+      "Vladimir wins",
+      "Anna wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:03:32.000Z",
+      "vodOffsetSeconds": 7572
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:06:28.000Z",
+      "vodOffsetSeconds": 7748
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:13:04.000Z",
+      "vodOffsetSeconds": 8144
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Vladimir wins"
+    }
+  },
+  {
+    "question": "Who wins this game: Anna Cramling or Chomickz786?",
+    "outcomes": [
+      "Anna Cramling",
+      "Chomickz786",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:13:08.000Z",
+      "vodOffsetSeconds": 8148
+    },
+    "lockedAt": null,
+    "endedAt": {
+      "iso": "2026-10-27T18:15:32.000Z",
+      "vodOffsetSeconds": 8292
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The game has ended, but the winner is not clearly shown."
+    }
+  },
+  {
+    "question": "Will Anna Cramling win this game?",
+    "outcomes": [
+      "Anna wins",
+      "Hubert wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:17:44.000Z",
+      "vodOffsetSeconds": 8424
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:19:36.000Z",
+      "vodOffsetSeconds": 8536
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:27:32.000Z",
+      "vodOffsetSeconds": 9012
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 0,
+      "outcome": "Anna wins"
+    }
+  },
+  {
+    "question": "Will WFM annacramling win this game?",
+    "outcomes": [
+      "Win",
+      "Lose",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:30:16.000Z",
+      "vodOffsetSeconds": 9176
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:35:04.000Z",
+      "vodOffsetSeconds": 9464
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:36:16.000Z",
+      "vodOffsetSeconds": 9536
+    },
+    "ended": {
+      "type": "cancelled",
+      "reason": "The result is still not shown clearly."
+    }
+  },
+  {
+    "question": "Who wins this chess game?",
+    "outcomes": [
+      "White wins",
+      "Black wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:36:32.000Z",
+      "vodOffsetSeconds": 9552
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:37:36.000Z",
+      "vodOffsetSeconds": 9616
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:37:40.000Z",
+      "vodOffsetSeconds": 9620
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Black wins"
+    }
+  },
+  {
+    "question": "Will White survive this attack?",
+    "outcomes": [
+      "White survives",
+      "Black wins"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:40:44.000Z",
+      "vodOffsetSeconds": 9804
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:41:48.000Z",
+      "vodOffsetSeconds": 9868
+    },
+    "endedAt": {
+      "iso": "2026-10-27T18:43:08.000Z",
+      "vodOffsetSeconds": 9948
+    },
+    "ended": {
+      "type": "resolved",
+      "outcomeIndex": 1,
+      "outcome": "Black wins"
+    }
+  },
+  {
+    "question": "Who wins this game?",
+    "outcomes": [
+      "White wins",
+      "Black wins",
+      "Draw"
+    ],
+    "openedAt": {
+      "iso": "2026-10-27T18:43:48.000Z",
+      "vodOffsetSeconds": 9988
+    },
+    "lockedAt": {
+      "iso": "2026-10-27T18:45:20.000Z",
+      "vodOffsetSeconds": 10080
+    },
+    "endedAt": null,
+    "ended": null
+  }
+]
