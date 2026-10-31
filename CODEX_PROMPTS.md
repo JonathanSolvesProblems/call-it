@@ -359,6 +359,91 @@ Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md and
 eval/chess/2912243465.games.json (I added the names).
 ```
 
+## Fixes from the full chess replay (2026-10-31)
+
+```
+Full replay of Anna Cramling's VOD 2912243465 (2.81 h, 14 games, 2,531 model calls),
+graded against chess.com (eval/results/chess-2912243465.json):
+
+  bets opened 21 | graded 8 | matched the record 4 | did not match 4 | refunded 2 |
+  ungraded 11 (9 "no game in progress")
+
+Causes, from the decision log and the frames:
+- All 4 wrong payouts read the banner right ("White Won") but gave it to the wrong player.
+  chess.com draws the streamer's side at the bottom, so when Anna plays Black the board is
+  flipped, and gpt-5.4-mini assumed the bottom player is White. One said "You Won!" and it
+  still paid White. Prompt wording, more effort and asking it to state each side did not
+  fix it. gpt-6.1-sol did.
+- It opened bets on the post-game screen, sometimes about the game that had just ended or
+  with the previous opponent's name.
+- 9 bets opened 1 to 4 minutes before a game's clock started; several resolved correctly on
+  that game but the grader only looks 60 s back.
+
+1. Second look on a stronger model that picks the outcome.
+   - New env OPENAI_RESOLVE_MODEL, default "gpt-6.1-sol", in config and .env.example. The
+     confirmation call uses it; the per-tick loop stays on OPENAI_MODEL. Each decision log
+     entry records the model that made that call.
+   - confirm_resolution takes { outcome_index, reason }, reason written for viewers. The
+     second look may settle on a different outcome than proposed. Settle on its index, and
+     put "corrected from <proposed> to <confirmed>" in the guard result when they differ. An
+     out-of-range index counts as an invalid confirmation.
+   - Append this to the confirmation instructions:
+     You may confirm the proposed outcome or a different one: call confirm_resolution with
+     the index of the outcome the frames prove. When a banner names a side, colour or
+     perspective ("White Won", "You Won", "Victory"), work out which named player that is
+     from the frame itself (the colour of the pieces next to their name, the board
+     coordinates); "You" is the streamer. Do not assume the streamer's side from where they
+     sit on screen.
+   - I tested this with gpt-6.1-sol: 18/18 right on six chess cases (four where the first
+     look proposed the wrong winner), 5/5 confirm and 5/5 reject on the two game cases,
+     about 2.5 s per call.
+2. Main prompt: append this paragraph to SYSTEM_PROMPT. It targets opening on the post-game
+   screen; the rerun will measure it.
+   Sides and perspective: when a result banner names a side or colour ("White Won", "Blue
+   team wins") or a perspective ("You Won", "Victory", "Defeat"), work out which named player
+   or team that is from the frame itself. "You", "Victory" and "Defeat" are from the
+   streamer's point of view. Do not assume the streamer's colour or side from where they sit
+   on screen: in board games the streamer's own side is usually drawn at the bottom whatever
+   its colour, so read the colour from their pieces or from the board's coordinates. Name
+   outcomes after the players or teams as the game writes them, not after colours or sides.
+   Between rounds: a result popup, a board with no clock running, or the previous opponent's
+   name means that round is over. Never open a bet about a round whose result is already on
+   screen. Wait until the next round has started (a new opponent name and a full clock)
+   before opening.
+3. eval:confirm: case.json may have "expectedOutcomeIndex". A confirm on a different index
+   counts as "wrong outcome", printed and saved separately from confirm and reject. Six new
+   cases are in eval/confirm-cases/chess-* (frames cropped to the board).
+4. Grader:
+   - A bet opened when no game is in progress belongs to the next game that starts within
+     300 s (was 60).
+   - A bet resolved more than 10 s before its game's endedAt is "incorrect", reason "paid
+     out before the game ended". It cannot have seen the result.
+   - Tests for both.
+
+Run typecheck and tests, commit. Also commit eval/confirm-cases/chess-*,
+eval/chess/2893451280.* and CODEX_PROMPTS.md.
+```
+
+## Spend guard (2026-10-31)
+
+```
+A forgotten `npm run live` with CALLIT_FORCE_LIVE=1 ran for 19 hours and made 10,093 model
+calls (46.8M input tokens) on an empty screen. Add hard limits in code:
+
+1. CALLIT_MAX_MINUTES (default 30): live mode stops itself after this many minutes when
+   CALLIT_FORCE_LIVE=1 is set, logs why, and exits. Without force-live it keeps following
+   stream.online / stream.offline as now.
+2. CALLIT_MAX_MODEL_CALLS (default 600 in live, unlimited in replay unless set): once
+   reached, the loop stops calling the model, logs "model call budget reached", and exits.
+   Replay accepts --max-calls <n>.
+3. Skip the model call when the newest frame's hash equals the previous tick's newest
+   frame hash (a frozen or static screen), and log it as a skipped tick.
+4. Print the model call count and input tokens every 50 calls in live mode, like replay.
+5. README and .env.example: document both limits.
+
+Tests for each. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

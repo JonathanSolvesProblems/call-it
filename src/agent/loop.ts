@@ -39,6 +39,8 @@ export interface AgentLoopOptions {
   archiveFrames?: boolean;
   onModelCall?: (usage: { inputTokens: number; outputTokens: number }) => void;
   onModelCallStart?: () => void;
+  maxModelCalls?: number;
+  onStop?: (reason: string) => void;
 }
 
 export class AgentLoop {
@@ -56,6 +58,9 @@ export class AgentLoop {
   private pendingProposalFrames: NonNullable<AgentContext["proposalFrames"]> = [];
   private confirmationFailures = 0;
   private nextTickAtMs = 0;
+  private modelCalls = 0;
+  private previousNewestFrameHash: string | undefined;
+  private budgetStopSignaled = false;
 
   constructor(private readonly options: AgentLoopOptions) {
     this.clock = options.clock ?? Date.now;
@@ -102,11 +107,12 @@ export class AgentLoop {
     await this.runTick();
   }
 
-  async runReplayTicks(tickCount: number, advanceClock: () => void): Promise<void> {
+  async runReplayTicks(tickCount: number, advanceClock: () => void, onTick?: () => void): Promise<void> {
     this.live = true;
-    for (let tick = 0; tick < tickCount; tick += 1) {
+    for (let tick = 0; tick < tickCount && this.live; tick += 1) {
       await this.runTick();
-      advanceClock();
+      onTick?.();
+      if (this.live && tick + 1 < tickCount) advanceClock();
     }
     this.live = false;
   }
@@ -122,8 +128,14 @@ export class AgentLoop {
   private async runTick(): Promise<void> {
     const tickStartedAt = this.clock();
     const frames = this.options.frames.latest(3);
+    const previousNewestFrameHash = this.previousNewestFrameHash;
+    this.previousNewestFrameHash = frames.at(-1)?.sha256;
     let frameHashes = frames.map((frame) => frame.sha256);
     let frameFiles: string[] = [];
+    if (this.isModelBudgetReached()) {
+      await this.stopForModelBudget(tickStartedAt, frameHashes, frameFiles);
+      return;
+    }
     const deadline = await this.options.executor.checkDeadlines(tickStartedAt, this.maxBetSeconds, Boolean(this.pendingResolution));
     if (deadline) {
       if (deadline === "timeout") this.clearPendingResolution();
@@ -149,6 +161,15 @@ export class AgentLoop {
         timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
         tool: "no_frames", arguments: {}, guardResult: "model call skipped: no current frame", latencyMs: 0, inputTokens: 0, outputTokens: 0,
       }, "No current frame is available. Waiting for OBS.");
+      return;
+    }
+    const sameAsPreviousFrame = newestFrame.sha256 === previousNewestFrameHash;
+    if (sameAsPreviousFrame) {
+      await this.record({
+        timestamp: new Date(tickStartedAt).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+        tool: "skipped_tick", arguments: {}, guardResult: "model call skipped: newest frame hash unchanged from previous tick",
+        latencyMs: 0, inputTokens: 0, outputTokens: 0,
+      }, "Frame unchanged since the previous tick. Skipping this tick.");
       return;
     }
 
@@ -222,6 +243,7 @@ export class AgentLoop {
 
     try {
       let modelCallStartedAt = this.clock();
+      this.modelCalls += 1;
       this.options.onModelCallStart?.();
       let response = await this.options.brain.call(context);
       this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
@@ -255,33 +277,40 @@ export class AgentLoop {
       if (calls.length > 1 || (calls.length === 1 && validationError && decoded?.call)) {
         const correction = calls.length > 1 ? "Exactly one function call is required per tick." : validationError ?? "Invalid tool call.";
         correctionError = correction;
-        modelCallStartedAt = this.clock();
-        this.options.onModelCallStart?.();
-        response = await this.options.brain.call(context, {
-          previousResponseId: response.id,
-          outputs: calls.map((call) => ({ callId: call.callId, error: correction })),
-        });
-        this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
-        modelLatencyMs += Math.max(0, this.clock() - modelCallStartedAt);
-        this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
-        inputTokens += response.usage?.input_tokens ?? 0;
-        outputTokens += response.usage?.output_tokens ?? 0;
-        calls = functionCalls(response);
-        decoded = calls.length === 1 ? decodeCall(calls[0]!) : undefined;
-        validationError = calls.length === 0
-          ? "Correction response returned no function_call; treated as wait."
-          : calls.length !== 1
-            ? "Correction response returned more than one function_call; treated as wait."
-            : decoded?.error;
-        if (decoded?.action) {
-          const guardTime = this.clock();
-          const correctedContext = this.options.executor.getAgentBetContext(guardTime);
-          validationError = validateAction(decoded.action, {
-            nowMs: guardTime, bet: correctedContext.bet, lastOpenedAtMs: correctedContext.lastOpenedAtMs,
-            mode: this.mode,
-            minGapSeconds: this.minGapSeconds, live: this.live, paused: this.paused, adBreak: this.adBreak,
-            frameTimestampsMs: context.frames.map((frame) => frame.timestampMs),
-          }) ?? undefined;
+        if (this.options.maxModelCalls !== undefined && this.modelCalls >= this.options.maxModelCalls) {
+          calls = [];
+          decoded = undefined;
+          validationError = "Model call budget reached before the correction call.";
+        } else {
+          modelCallStartedAt = this.clock();
+          this.modelCalls += 1;
+          this.options.onModelCallStart?.();
+          response = await this.options.brain.call(context, {
+            previousResponseId: response.id,
+            outputs: calls.map((call) => ({ callId: call.callId, error: correction })),
+          });
+          this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });
+          modelLatencyMs += Math.max(0, this.clock() - modelCallStartedAt);
+          this.nextTickAtMs = this.clock() + this.tickSeconds * 1000;
+          inputTokens += response.usage?.input_tokens ?? 0;
+          outputTokens += response.usage?.output_tokens ?? 0;
+          calls = functionCalls(response);
+          decoded = calls.length === 1 ? decodeCall(calls[0]!) : undefined;
+          validationError = calls.length === 0
+            ? "Correction response returned no function_call; treated as wait."
+            : calls.length !== 1
+              ? "Correction response returned more than one function_call; treated as wait."
+              : decoded?.error;
+          if (decoded?.action) {
+            const guardTime = this.clock();
+            const correctedContext = this.options.executor.getAgentBetContext(guardTime);
+            validationError = validateAction(decoded.action, {
+              nowMs: guardTime, bet: correctedContext.bet, lastOpenedAtMs: correctedContext.lastOpenedAtMs,
+              mode: this.mode,
+              minGapSeconds: this.minGapSeconds, live: this.live, paused: this.paused, adBreak: this.adBreak,
+              frameTimestampsMs: context.frames.map((frame) => frame.timestampMs),
+            }) ?? undefined;
+          }
         }
       }
 
@@ -365,6 +394,25 @@ export class AgentLoop {
       ...(latestFrame ? { latestFrameJpegBase64: latestFrame.jpegBase64 } : {}),
     });
     this.options.onDecision?.(entry);
+    if (entry.tool !== "model_call_budget_reached" && this.isModelBudgetReached()) {
+      await this.stopForModelBudget(Date.parse(entry.timestamp), entry.frameHashes, entry.frameFiles ?? []);
+    }
+  }
+
+  private isModelBudgetReached(): boolean {
+    return this.options.maxModelCalls !== undefined && this.modelCalls >= this.options.maxModelCalls;
+  }
+
+  private async stopForModelBudget(timestampMs: number, frameHashes: string[], frameFiles: string[]): Promise<void> {
+    if (this.budgetStopSignaled) return;
+    this.budgetStopSignaled = true;
+    this.live = false;
+    await this.record({
+      timestamp: new Date(timestampMs).toISOString(), frameHashes, frameFiles, model: this.options.brain.model,
+      tool: "model_call_budget_reached", arguments: { modelCalls: this.modelCalls },
+      guardResult: "model call budget reached; no further model calls will be made", latencyMs: 0, inputTokens: 0, outputTokens: 0,
+    }, "model call budget reached");
+    this.options.onStop?.("model call budget reached");
   }
 
   private overlayBet(nowMs: number): ReturnType<OverlayServer["getState"]>["bet"] {
@@ -407,6 +455,7 @@ export class AgentLoop {
   ): Promise<void> {
     const startedAt = this.clock();
     try {
+      this.modelCalls += 1;
       this.options.onModelCallStart?.();
       const response = await this.options.brain.call(context);
       this.options.onModelCall?.({ inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 });

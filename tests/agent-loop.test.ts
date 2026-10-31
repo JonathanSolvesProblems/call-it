@@ -227,6 +227,53 @@ describe("agent loop tool validation", () => {
     expect(call).not.toHaveBeenCalled();
   });
 
+  it("stops at the model call budget and records the budget stop", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-agent-budget-"));
+    directories.push(directory);
+    const decisions = new DecisionLog(join(directory, "decisions.jsonl"));
+    const call = vi.fn().mockResolvedValue(modelResponse("lock_bet", JSON.stringify({ reason: "lock now" }), "budget-invalid"));
+    const executor: AgentExecutor = {
+      getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }), overlayBet: () => null,
+      setPaused: vi.fn(), setAdBreak: vi.fn(), openBet: vi.fn(), lockBet: vi.fn(), lockBetForResolution: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
+      checkDeadlines: vi.fn(async () => null),
+    };
+    const stopped = vi.fn();
+    const loop = new AgentLoop({
+      frames: { latest: () => [{ ...currentFrame }] }, brain: { model: "gpt-5.4-mini", call }, executor, decisions,
+      overlay: new OverlayServer(), frameArchive: new FrameArchive(join(directory, "frames")), clock: () => 20_000,
+      maxModelCalls: 1, onStop: stopped,
+    });
+    await loop.tickOnce();
+    await loop.tickOnce();
+
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(stopped).toHaveBeenCalledWith("model call budget reached");
+    const rows = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string; guardResult: string });
+    expect(rows.at(-1)).toMatchObject({ tool: "model_call_budget_reached", guardResult: "model call budget reached; no further model calls will be made" });
+  });
+
+  it("skips a tick when the newest frame hash is unchanged", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "callit-agent-static-frame-"));
+    directories.push(directory);
+    const decisions = new DecisionLog(join(directory, "decisions.jsonl"));
+    const call = vi.fn().mockResolvedValue(modelResponse("wait", "{}", "static-wait"));
+    const executor: AgentExecutor = {
+      getAgentBetContext: () => ({ bet: null, lastOpenedAtMs: null }), overlayBet: () => null,
+      setPaused: vi.fn(), setAdBreak: vi.fn(), openBet: vi.fn(), lockBet: vi.fn(), lockBetForResolution: vi.fn(), resolveBet: vi.fn(), restoreBetStatus: vi.fn(), cancelBet: vi.fn(),
+      checkDeadlines: vi.fn(async () => null),
+    };
+    const loop = new AgentLoop({
+      frames: { latest: () => [{ ...currentFrame }] }, brain: { model: "gpt-5.4-mini", call }, executor, decisions,
+      overlay: new OverlayServer(), frameArchive: new FrameArchive(join(directory, "frames")), clock: () => 20_000,
+    });
+    await loop.tickOnce();
+    await loop.tickOnce();
+
+    expect(call).toHaveBeenCalledTimes(1);
+    const rows = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string; guardResult: string });
+    expect(rows.at(-1)).toMatchObject({ tool: "skipped_tick", guardResult: "model call skipped: newest frame hash unchanged from previous tick" });
+  });
+
   it.each([
     ["empty", []],
     ["stale", [{ ...currentFrame, timestampMs: 9_999 }]],

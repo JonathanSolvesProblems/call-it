@@ -11,6 +11,7 @@ import { TwitchAuth } from "./twitch/auth.js";
 import { EventSubClient } from "./twitch/eventsub.js";
 import { HelixClient } from "./twitch/helix.js";
 import { runReplay } from "./replay/run.js";
+import { ModelCallReporter, positiveLimit, scheduleForceLiveLimit } from "./agent/spend-limits.js";
 
 async function live(): Promise<void> {
   const config = loadConfig();
@@ -25,6 +26,8 @@ async function live(): Promise<void> {
   console.log(`Channel ${broadcaster.display_name}: broadcaster_type=${broadcaster.broadcaster_type || "none"}, mode=${mode}`);
   let streamLive = (await helix.getStreams(broadcaster.id)).length > 0;
   const forceLive = process.env.CALLIT_FORCE_LIVE === "1";
+  const maxMinutes = positiveLimit(process.env.CALLIT_MAX_MINUTES, 30, "CALLIT_MAX_MINUTES", false)!;
+  const maxModelCalls = positiveLimit(process.env.CALLIT_MAX_MODEL_CALLS, 600, "CALLIT_MAX_MODEL_CALLS")!;
   console.log(`Stream live: ${streamLive ? "yes" : "no"}`);
 
   const overlay = new OverlayServer();
@@ -38,6 +41,7 @@ async function live(): Promise<void> {
   let ledger: ChatBetLedger | undefined;
   let chatBets: ChatBetService | undefined;
   let agent: AgentLoop | undefined;
+  const modelUsage = new ModelCallReporter((message) => console.log(message));
   if (mode === "chat") {
     ledger = await ChatBetLedger.open(join(process.cwd(), "data", "ledger", `${broadcaster.id}.json`));
     chatBets = new ChatBetService(ledger, sendChat, overlay);
@@ -49,6 +53,13 @@ async function live(): Promise<void> {
       executor: chatBets,
       decisions,
       overlay,
+      maxModelCalls,
+      onModelCallStart: () => modelUsage.callStarted(),
+      onModelCall: (usage) => modelUsage.recordUsage(usage),
+      onStop: (reason) => {
+        console.log(reason);
+        void shutdown();
+      },
     });
   } else {
     console.warn("Native prediction mode is not part of this slice. The chat-mode agent loop is not started.");
@@ -58,6 +69,7 @@ async function live(): Promise<void> {
   frames.start();
 
   let adBreakTimer: ReturnType<typeof setTimeout> | undefined;
+  let stopForceLiveTimer = () => {};
   eventsub = new EventSubClient(helix, broadcaster.id, bot.id, {
     onChatMessage: async (event) => {
       const text = event.message.text.trim();
@@ -109,6 +121,7 @@ async function live(): Promise<void> {
   const cleanup = () => {
     cleanupPromise ??= (async () => {
       if (adBreakTimer) clearTimeout(adBreakTimer);
+      stopForceLiveTimer();
       eventsub?.stop();
       await agent?.stop();
       await frames.stop();
@@ -130,6 +143,10 @@ async function live(): Promise<void> {
   }
   agent?.setLive(streamLive || forceLive);
   if (forceLive && !streamLive) console.log("CALLIT_FORCE_LIVE=1 is enabled. The agent loop is running offline for testing.");
+  stopForceLiveTimer = scheduleForceLiveLimit(forceLive, maxMinutes, () => {
+    console.log(`CALLIT_FORCE_LIVE=1 duration limit reached after ${maxMinutes} minutes. Exiting.`);
+    void shutdown();
+  });
 }
 
 async function replay(folder: string | undefined, args: string[]): Promise<void> {

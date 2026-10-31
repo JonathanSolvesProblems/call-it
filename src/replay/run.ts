@@ -6,6 +6,7 @@ import { AgentLoop } from "../agent/loop.js";
 import { ReplayFrameSource } from "../frames/replay-frame-source.js";
 import { OverlayServer } from "../overlay/server.js";
 import { ReplayBetExecutor } from "./replay-executor.js";
+import { positiveLimit } from "../agent/spend-limits.js";
 
 export interface VodMetadata {
   vodId: string;
@@ -73,6 +74,7 @@ export async function runReplay(folderArg: string, args: string[], options: Repl
     memorySummary: "No stored channel memory summary yet.",
     clock,
     tickSeconds,
+    ...(flags.maxCalls === undefined ? {} : { maxModelCalls: flags.maxCalls }),
     archiveFrames: false,
     decisionMetadata: () => ({ vodOffsetSeconds: (nowMs - startedAtMs) / 1000 }),
     onModelCall: (usage) => {
@@ -80,14 +82,17 @@ export async function runReplay(folderArg: string, args: string[], options: Repl
       outputTokens += usage.outputTokens;
     },
     onModelCallStart: () => { modelCalls += 1; },
+    onStop: (reason) => log(reason),
   });
   await loop.runReplayTicks(totalTicks, () => {
+    nowMs += tickSeconds * 1000;
+  }, () => {
     completedTicks += 1;
     if (completedTicks % 50 === 0) log(`Replay tick ${completedTicks}/${totalTicks}: ${modelCalls} model calls, ${inputTokens} input tokens, ${outputTokens} output tokens.`);
-    nowMs += tickSeconds * 1000;
   });
+  const processedToSeconds = flags.fromSeconds + Math.max(0, completedTicks - 1) * tickSeconds;
   await writeFile(join(outputDirectory, "bets.json"), `${JSON.stringify(executor.bets, null, 2)}\n`, "utf8");
-  await writeFile(join(outputDirectory, "run.json"), `${JSON.stringify({ vod, memoryOff: flags.memoryOff, fromSeconds: flags.fromSeconds, toSeconds, tickSeconds, ticks: totalTicks }, null, 2)}\n`, "utf8");
+  await writeFile(join(outputDirectory, "run.json"), `${JSON.stringify({ vod, memoryOff: flags.memoryOff, fromSeconds: flags.fromSeconds, toSeconds: processedToSeconds, tickSeconds, ticks: completedTicks, maxCalls: flags.maxCalls ?? null }, null, 2)}\n`, "utf8");
   log(`Replay complete: ${modelCalls} model calls, ${inputTokens} input tokens, ${outputTokens} output tokens.`);
   return {
     vod,
@@ -98,14 +103,15 @@ export async function runReplay(folderArg: string, args: string[], options: Repl
     inputTokens,
     outputTokens,
     startedAtMs: fromMs,
-    endedAtMs: nowMs,
+    endedAtMs: startedAtMs + processedToSeconds * 1000,
   };
 }
 
-export function parseReplayFlags(args: string[], defaultToSeconds: number): { fromSeconds: number; toSeconds: number; memoryOff: boolean } {
+export function parseReplayFlags(args: string[], defaultToSeconds: number, env: NodeJS.ProcessEnv = process.env): { fromSeconds: number; toSeconds: number; memoryOff: boolean; maxCalls?: number } {
   let fromSeconds = 0;
   let toSeconds = defaultToSeconds;
   let memoryOff = false;
+  let maxCalls = positiveLimit(env.CALLIT_MAX_MODEL_CALLS, undefined, "CALLIT_MAX_MODEL_CALLS");
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--memory") {
@@ -118,10 +124,14 @@ export function parseReplayFlags(args: string[], defaultToSeconds: number): { fr
       if (arg === "--from") fromSeconds = value;
       else toSeconds = value;
       index += 1;
+    } else if (arg === "--max-calls") {
+      if (args[index + 1] === undefined) throw new Error("--max-calls requires a positive integer.");
+      maxCalls = positiveLimit(args[index + 1], undefined, "--max-calls");
+      index += 1;
     } else throw new Error(`Unknown replay option ${arg}.`);
   }
   if (toSeconds < fromSeconds) throw new Error("--to must be at or after --from.");
-  return { fromSeconds, toSeconds, memoryOff };
+  return { fromSeconds, toSeconds, memoryOff, ...(maxCalls === undefined ? {} : { maxCalls }) };
 }
 
 function positive(value: number, fallback: number): number { return Number.isFinite(value) && value > 0 ? value : fallback; }

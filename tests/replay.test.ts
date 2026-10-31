@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Response } from "openai/resources/responses/responses.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runReplay } from "../src/replay/run.js";
+import { parseReplayFlags, runReplay } from "../src/replay/run.js";
 import type { AgentContext } from "../src/agent/types.js";
 
 const directories: string[] = [];
@@ -18,6 +18,12 @@ function fn(name: string, args: unknown, id: number): Response {
 }
 
 describe("fast VOD replay", () => {
+  it("supports an explicit replay model-call cap and stays unlimited by default", () => {
+    expect(parseReplayFlags([], 120, {}).maxCalls).toBeUndefined();
+    expect(parseReplayFlags(["--max-calls", "25"], 120, {}).maxCalls).toBe(25);
+    expect(parseReplayFlags([], 120, { CALLIT_MAX_MODEL_CALLS: "40" }).maxCalls).toBe(40);
+  });
+
   it("uses VOD timestamps and 2-second frames, writes decisions and bet lifecycle without real waits", async () => {
     const root = await mkdtemp(join(tmpdir(), "callit-replay-test-"));
     directories.push(root);
@@ -68,5 +74,17 @@ describe("fast VOD replay", () => {
     expect(bets[0]).toMatchObject({ openedAt: { iso: startedAt, vodOffsetSeconds: 0 }, lockedAt: { vodOffsetSeconds: 30 }, endedAt: { vodOffsetSeconds: 34 }, ended: { type: "resolved", outcomeIndex: 0 } });
     expect(logs.some((line) => line.includes("[fake chat] BET:"))).toBe(true);
     expect(logs.at(-1)).toContain(`${calls} model calls`);
+
+    const limitedLogs: string[] = [];
+    const limited = await runReplay(vodFolder, ["--to", "40", "--max-calls", "1"], {
+      brain: { model: "fake-model", call: vi.fn(async () => fn("wait", {}, 1)) },
+      outputRoot: join(root, "limited-runs"), tickSeconds: 2, log: (line) => limitedLogs.push(line),
+    });
+    const limitedRows = (await readFile(join(limited.directory, "decisions.jsonl"), "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as { tool: string });
+    const limitedRun = JSON.parse(await readFile(join(limited.directory, "run.json"), "utf8")) as { ticks: number; toSeconds: number };
+    expect(limited.modelCalls).toBe(1);
+    expect(limitedRows.map(({ tool }) => tool)).toEqual(["wait", "model_call_budget_reached"]);
+    expect(limitedRun).toMatchObject({ ticks: 1, toSeconds: 0 });
+    expect(limitedLogs).toContain("model call budget reached");
   });
 });
