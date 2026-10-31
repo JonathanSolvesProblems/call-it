@@ -473,6 +473,45 @@ The demo ends on a live payout with the clip link landing in chat (DEMO.md). Bui
 Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## README for judges (2026-10-31)
+
+```
+Rewrite README.md for a judge who opens the repo cold. Plain language, short sentences, no
+em dashes, no hype words. Order:
+
+1. One line: what Call It is ("Call It watches your game through OBS and runs prediction
+   bets in your Twitch chat: it opens them, locks them, settles them and clips the moment").
+2. Who it is for: small streamers. Twitch Predictions need Affiliate; a small channel never
+   had them. Call It runs the same thing in chat with its own points.
+3. How it works, as a short numbered list: OBS frame every 2 s; every 4 s gpt-5.4-mini sees
+   the last 3 frames, the bet state and recent decisions and must call exactly one tool
+   (wait, open_bet, lock_bet, resolve_bet, cancel_bet); code only enforces limits (list
+   the guards); a proposed payout goes to a second look on gpt-6.1-sol, which sees the
+   proposal frames and newer frames and settles on the outcome the frames prove, or rejects
+   it; payout in chat, stream marker, clip link. Name the files where each step lives.
+4. Setup from a clean clone, tested on Windows: Node 22+, npm install, Twitch app (public
+   client, no redirect needed because login uses the device code flow), OBS WebSocket
+   enabled, .env from .env.example (list each variable and what it does, including
+   OPENAI_RESOLVE_MODEL, OBS_SOURCE_NAME, CALLIT_MAX_MINUTES, CALLIT_MAX_MODEL_CALLS).
+5. Run: npm run live (and CALLIT_FORCE_LIVE=1 for testing off-stream), chat commands for
+   viewers (!1, !2, ...) and for the broadcaster and mods (!callit pause / resume / cancel /
+   status), the overlay URL to add as an OBS browser source.
+6. Measure: npm run replay -- <folder>, npm run grade -- <runDir> <games.json>,
+   npm run eval:confirm. Explain that the grader has no model in it and grades against
+   chess.com's public game records. Leave a "Results" section with the heading and one line
+   "Filled in from eval/results/ after the held-out run." I will write the numbers.
+7. Limits, stated plainly: chat mode only (native Channel Points Predictions are future
+   work for Affiliate channels); clips and markers only while really live; the agent reads
+   only pixels, so it can be wrong, which is why every payout gets a second look and
+   viewers can be refunded with !callit cancel; spend caps and what one hour costs in model
+   calls (about 900 calls an hour at a 4 s tick).
+8. How it was built: built in OpenAI Codex in one main thread (session ID: leave
+   "<session id>" for me to fill). Planning, prompt review, live testing and the evaluation
+   runs were done with Claude Code; the prompts sent to Codex are in CODEX_PROMPTS.md.
+
+Keep it under about 200 lines. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.
