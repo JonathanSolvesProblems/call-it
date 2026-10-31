@@ -1,0 +1,189 @@
+{
+  "graderVersion": "2026-10-31b",
+  "vodId": "2912243465",
+  "memoryOff": false,
+  "vodHours": 2.808333333333333,
+  "betsOpened": 21,
+  "betsPerHour": 7.477744807121662,
+  "graded": 10,
+  "matchedRecord": 4,
+  "didNotMatch": 6,
+  "refunded": 3,
+  "ungraded": 8,
+  "ungradedReasons": {
+    "no game in progress": 3,
+    "outcomes do not map to streamer win, opponent win, or draw": 5
+  },
+  "bets": [
+    {
+      "question": "Who wins this Chess.com game?",
+      "openedAt": "2026-10-27T15:58:16.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187430296297",
+      "status": "correct",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "black"
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-27T16:10:24.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187430896461",
+      "status": "correct",
+      "predictedResults": [
+        "draw"
+      ],
+      "actualResult": "draw"
+    },
+    {
+      "question": "Who wins this game: Efe Aynaoglu or Anna Cramling?",
+      "openedAt": "2026-10-27T16:22:08.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187431496261",
+      "status": "refunded",
+      "reason": "The board shown is a different game, so this bet cannot be settled from the current action."
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-27T16:25:56.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187431496261",
+      "status": "incorrect",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Will AnnaCramling win this game?",
+      "openedAt": "2026-10-27T16:32:28.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187432695705",
+      "status": "incorrect",
+      "actualResult": "white",
+      "reason": "paid out before the game ended"
+    },
+    {
+      "question": "Will Anna Cramling win this game?",
+      "openedAt": "2026-10-27T16:36:48.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187432695705",
+      "status": "incorrect",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "What is the result of Anna Cramling vs Zachary Calderon?",
+      "openedAt": "2026-10-27T16:42:40.000Z",
+      "status": "ungraded",
+      "reason": "no game in progress"
+    },
+    {
+      "question": "Will Anna Cramling win this game?",
+      "openedAt": "2026-10-27T16:47:16.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187433296429",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this game: Anna Cramling or Ayan Allahverdiy... ?",
+      "openedAt": "2026-10-27T17:03:32.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187433896771",
+      "status": "incorrect",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who will win this game: Anna Cramling or Ayan Allahverdiyeva?",
+      "openedAt": "2026-10-27T17:11:52.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187435095689",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this game between Anna Cramling and Tapson67?",
+      "openedAt": "2026-10-27T17:22:44.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187435695935",
+      "status": "refunded",
+      "reason": "The visible game names don’t match the bet, so this result can’t be confirmed."
+    },
+    {
+      "question": "What is the result of this game?",
+      "openedAt": "2026-10-27T17:33:04.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187435695935",
+      "status": "correct",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "white"
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-27T17:43:44.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187436296591",
+      "status": "incorrect",
+      "predictedResults": [
+        "white"
+      ],
+      "actualResult": "black"
+    },
+    {
+      "question": "How does this Chess.com game end?",
+      "openedAt": "2026-10-27T17:52:28.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187437495477",
+      "status": "correct",
+      "predictedResults": [
+        "black"
+      ],
+      "actualResult": "black"
+    },
+    {
+      "question": "Who wins this game: Vladimir Sofronie or Anna Cramling?",
+      "openedAt": "2026-10-27T18:03:32.000Z",
+      "gameUrl": "https://www.chess.com/game/live/187438095533",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this game: Anna Cramling or Chomickz786?",
+      "openedAt": "2026-10-27T18:13:08.000Z",
+      "status": "ungraded",
+      "reason": "no game in progress"
+    },
+    {
+      "question": "Will Anna Cramling win this game?",
+      "openedAt": "2026-10-27T18:17:44.000Z",
+      "gameUrl": "https://www.chess.com/game/live/186052900218",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Will WFM annacramling win this game?",
+      "openedAt": "2026-10-27T18:30:16.000Z",
+      "gameUrl": "https://www.chess.com/game/live/186053390476",
+      "status": "refunded",
+      "reason": "The result is still not shown clearly."
+    },
+    {
+      "question": "Who wins this chess game?",
+      "openedAt": "2026-10-27T18:36:32.000Z",
+      "gameUrl": "https://www.chess.com/game/live/186053799808",
+      "status": "incorrect",
+      "actualResult": "black",
+      "reason": "paid out before the game ended"
+    },
+    {
+      "question": "Will White survive this attack?",
+      "openedAt": "2026-10-27T18:40:44.000Z",
+      "gameUrl": "https://www.chess.com/game/live/186053799808",
+      "status": "ungraded",
+      "reason": "outcomes do not map to streamer win, opponent win, or draw"
+    },
+    {
+      "question": "Who wins this game?",
+      "openedAt": "2026-10-27T18:43:48.000Z",
+      "status": "ungraded",
+      "reason": "no game in progress"
+    }
+  ]
+}

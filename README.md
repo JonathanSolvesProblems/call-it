@@ -74,7 +74,26 @@ Replay uses the same prompts, tools, guards, and second look with a fake clock. 
 
 ## Results
 
-Filled in from `eval/results/` after the held-out run.
+Measured on real Twitch VODs of Anna Cramling playing chess.com blitz. [eval/grade.ts](eval/grade.ts) grades each game-result payout against chess.com's public game archive. The grader has no model in it.
+
+| | Tuning VOD, before fixes | Held-out VOD |
+| --- | --- | --- |
+| VOD | [2912243465](https://www.twitch.tv/videos/2912243465) (Oct 27) | [2893451280](https://www.twitch.tv/videos/2893451280) (Oct 6) |
+| Hours / games | 2.81 / 14 | 2.42 / 13 |
+| Bets the agent opened on its own | 21 | 22 |
+| Game-result payouts graded | 10 | 12 |
+| Matched the chess.com record | 4 | **10** |
+| Did not match | 6 | 2 |
+| Refunded instead of guessing | 3 | 8 |
+| Ungraded | 8 | 2 |
+
+- The held-out VOD was never used for tuning. It ran on commit `0215e17`: 2,179 model calls, 11.3M input tokens.
+- Both held-out misses were bets opened after a game had already ended. A prompt rule added after the run targets this; the held-out run was not repeated, so it stays an untuned number.
+- The second look on `gpt-6.1-sol` stepped in on 11 of 18 proposed payouts in the held-out run: it corrected the winner 5 times and rejected 6 payouts that used another game's result. All 11 were right by the record.
+- `npm run eval:confirm` passes 40 of 40 checks on 8 saved cases (6 chess, 2 from my own game).
+- Limits of this measurement: one streamer and one site, so the held-out VOD tests unseen games, not an unseen layout (other chess streamers' VODs were subscriber-only). The grader was fixed after seeing the held-out run; the fixes made it stricter on timing and tolerant of misspelled names. The first grade is kept in [grade-before-grader-fix.json](eval/results/2893451280-heldout/grade-before-grader-fix.json) (7 of 7 matched).
+
+Files: [eval/results/2893451280-heldout/](eval/results/2893451280-heldout/) and [eval/results/2912243465-run1/](eval/results/2912243465-run1/), each with the bets, the full decision log and `grade-final.json`.
 
 ## Limits
 
