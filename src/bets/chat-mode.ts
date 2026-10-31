@@ -2,6 +2,8 @@ import type { ActiveBetContext, OpenBetAction } from "../agent/types.js";
 import type { OverlayServer } from "../overlay/server.js";
 import type { OverlayBet } from "../overlay/state.js";
 import { ChatBetLedger, parseBetCommand } from "./chat-ledger.js";
+import type { MomentRecord, MomentRecorder } from "./moment-recorder.js";
+import { twitchFailureStatus } from "./moment-recorder.js";
 
 export type SendChatMessage = (message: string) => Promise<void>;
 
@@ -10,7 +12,14 @@ export class ChatBetService {
   private adBreak = false;
   private nextNoBetReplyAtMs = 0;
 
-  constructor(private readonly ledger: ChatBetLedger, private readonly send: SendChatMessage, private readonly overlay: OverlayServer) {}
+  constructor(
+    private readonly ledger: ChatBetLedger,
+    private readonly send: SendChatMessage,
+    private readonly overlay: OverlayServer,
+    private readonly momentRecorder?: MomentRecorder,
+    private readonly isLive: () => boolean = () => false,
+    private readonly log: (message: string) => void = console.error,
+  ) {}
 
   getAgentBetContext(nowMs = Date.now()): { bet: ActiveBetContext | null; lastOpenedAtMs: number | null } {
     const bet = this.ledger.getActiveBet();
@@ -89,37 +98,41 @@ export class ChatBetService {
     this.overlay.update({ bet: this.ledger.overlayBet() });
   }
 
-  async resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs = Date.now()): Promise<void> {
+  async resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs = Date.now()): Promise<MomentRecord | void> {
     if (this.ledger.currentBet?.status === "open") await this.lockBet(reason, nowMs);
     const { bet, payout } = await this.ledger.resolve(outcomeIndex, nowMs);
     const outcome = bet.outcomes[outcomeIndex] ?? "Winning outcome";
     if (Object.keys(bet.stakes).length === 0) {
       this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
-      await this.sendSafely(trimChat(`${outcome}! No one bet on this one.`));
-      return;
+      const sent = await this.sendSafely(trimChat(`${outcome}! No one bet on this one.`));
+      return sent ? this.recordPayoutMoment(bet, outcome) : undefined;
     }
     if (payout.refunds) {
       this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
-      await this.sendSafely("Refunded: no points were placed on the winning outcome.");
-      return;
+      const sent = await this.sendSafely("Refunded: no points were placed on the winning outcome.");
+      return sent ? this.recordPayoutMoment(bet, "refunded") : undefined;
     }
     const winners = payout.winners;
     const biggestWin = winners.reduce((best, winner) => Math.max(best, winner.payout), 0);
     this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
-    await this.sendSafely(trimChat(`Resolved: ${outcome} | ${winners.length} winners | biggest win ${biggestWin.toLocaleString()} pts | ${reason}`));
+    const sent = await this.sendSafely(trimChat(`Resolved: ${outcome} | ${winners.length} winners | biggest win ${biggestWin.toLocaleString()} pts | ${reason}`));
+    return sent ? this.recordPayoutMoment(bet, outcome) : undefined;
   }
 
-  async cancelBet(reason: string, nowMs = Date.now()): Promise<void> {
+  async cancelBet(reason: string, nowMs = Date.now(), recordMoment = true): Promise<MomentRecord | void> {
+    const bet = this.ledger.getActiveBet();
+    if (!bet) return;
     await this.ledger.refund(nowMs);
     this.overlay.update({ bet: this.ledger.overlayBet(nowMs), lastDecisionReason: reason });
-    await this.sendSafely(trimChat(`Refunded: ${reason}`));
+    const sent = await this.sendSafely(trimChat(`Refunded: ${reason}`));
+    return sent && recordMoment ? this.recordPayoutMoment(bet, "refunded") : undefined;
   }
 
   async checkDeadlines(nowMs: number, maxBetSeconds: number, resolutionPending = false): Promise<"timeout" | "window_end" | null> {
     const bet = this.ledger.getActiveBet();
     if (!bet) return null;
     if (nowMs - bet.openedAtMs >= maxBetSeconds * 1000) {
-      await this.cancelBet("bet timed out.", nowMs);
+      await this.cancelBet("bet timed out.", nowMs, false);
       return "timeout";
     }
     if (resolutionPending) return null;
@@ -130,9 +143,22 @@ export class ChatBetService {
     return null;
   }
 
-  private async sendSafely(message: string): Promise<void> {
-    try { await this.send(message); }
-    catch (error) { console.error("Could not send a chat announcement", error); }
+  private async sendSafely(message: string): Promise<boolean> {
+    try { await this.send(message); return true; }
+    catch (error) { console.error("Could not send a chat announcement", error); return false; }
+  }
+
+  private async recordPayoutMoment(bet: NonNullable<ChatBetLedger["currentBet"]>, result: string): Promise<MomentRecord | void> {
+    if (!this.momentRecorder || !this.isLive()) return;
+    try {
+      const moment = await this.momentRecorder.record(bet.question, result);
+      await this.ledger.recordMoment(bet.id, moment);
+      this.overlay.update({ bet: this.ledger.overlayBet(bet.settledAtMs) });
+      return moment;
+    } catch (error) {
+      this.log(`Call It moment recording failed (${twitchFailureStatus(error)}).`);
+      return;
+    }
   }
 }
 

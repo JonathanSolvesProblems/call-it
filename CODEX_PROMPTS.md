@@ -444,6 +444,35 @@ calls (46.8M input tokens) on an empty screen. Add hard limits in code:
 Tests for each. Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
 ```
 
+## Slice 4a: clip and stream marker on every payout (2026-10-31)
+
+```
+The demo ends on a live payout with the clip link landing in chat (DEMO.md). Build it:
+
+1. Helix client: createClip(broadcasterId) -> POST /helix/clips?broadcaster_id=...
+   (scope clips:edit; 202 with data[0].id and edit_url; clip URL is
+   https://clips.twitch.tv/<id>) and createStreamMarker(userId, description) -> POST
+   /helix/streams/markers with { user_id, description } (scope channel:manage:broadcast;
+   description at most 140 characters). Note the scope in a comment like the other calls,
+   and verify both against the Twitch API reference before writing them.
+2. When a bet settles (confirmed resolution) or is refunded by the model, in chat mode:
+   - Create a stream marker described as "Call It: <question> -> <outcome or refunded>".
+   - Create a clip. Post "Clip: https://clips.twitch.tv/<id>" in chat after the payout line.
+   - Both happen after the payout message, never before, and never delay settlement.
+   - Both only work while the channel is really live. If Twitch refuses (404, not live,
+     rate limit, or force-live with no broadcast), log one line with the status and move
+     on. No chat message on failure.
+   - Record the clip id, clip URL and marker position on the bet in the ledger and in the
+     decision log entry for that settlement.
+3. Put this behind an interface (for example a MomentRecorder) so replay uses a fake that
+   only logs, and never calls Twitch.
+4. Overlay: when a clip URL exists for the settled bet, show "Clipped" on the winner card.
+5. Tests: clip and marker are called after the payout message with the right text; a
+   Twitch failure is logged and does not throw or send chat; replay uses the fake.
+
+Run typecheck and tests, commit. Also commit CODEX_PROMPTS.md.
+```
+
 ## Later slices
 
 4. Clips and stream markers on resolve, ad-break pause, stream.online autostart, memory.

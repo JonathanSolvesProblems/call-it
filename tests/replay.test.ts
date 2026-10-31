@@ -73,6 +73,7 @@ describe("fast VOD replay", () => {
     expect(bets).toHaveLength(1);
     expect(bets[0]).toMatchObject({ openedAt: { iso: startedAt, vodOffsetSeconds: 0 }, lockedAt: { vodOffsetSeconds: 30 }, endedAt: { vodOffsetSeconds: 34 }, ended: { type: "resolved", outcomeIndex: 0 } });
     expect(logs.some((line) => line.includes("[fake chat] BET:"))).toBe(true);
+    expect(logs.some((line) => line.includes("[fake moment recorder] marker and clip:"))).toBe(true);
     expect(logs.at(-1)).toContain(`${calls} model calls`);
 
     const limitedLogs: string[] = [];

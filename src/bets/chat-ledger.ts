@@ -17,6 +17,9 @@ export interface ChatBet {
   lockedAtMs?: number;
   settledAtMs?: number;
   winningOutcomeIndex?: number;
+  clipId?: string;
+  clipUrl?: string;
+  markerPositionSeconds?: number;
   stakes: Record<string, { outcomeIndex: number; amount: number }>;
 }
 
@@ -163,6 +166,15 @@ export class ChatBetLedger {
     return bet;
   }
 
+  async recordMoment(betId: string, moment: { clipId?: string; clipUrl?: string; markerPositionSeconds?: number }): Promise<void> {
+    const bet = this.currentBet;
+    if (!bet || bet.id !== betId) return;
+    if (moment.clipId !== undefined) bet.clipId = moment.clipId;
+    if (moment.clipUrl !== undefined) bet.clipUrl = moment.clipUrl;
+    if (moment.markerPositionSeconds !== undefined) bet.markerPositionSeconds = moment.markerPositionSeconds;
+    await this.save();
+  }
+
   pools(): Array<{ points: number; bettors: number }> {
     const bet = this.currentBet;
     if (!bet) return [];
@@ -184,6 +196,7 @@ export class ChatBetLedger {
       status: bet.status,
       secondsLeft: Math.max(0, Math.ceil((bet.expiresAtMs - nowMs) / 1000)),
       ...(bet.winningOutcomeIndex === undefined ? {} : { winningOutcomeIndex: bet.winningOutcomeIndex }),
+      ...(bet.clipUrl === undefined ? {} : { clipUrl: bet.clipUrl }),
     };
   }
 

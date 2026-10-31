@@ -12,6 +12,7 @@ export interface OverlayBet {
   status: BetStatus | "checking";
   secondsLeft: number;
   winningOutcomeIndex?: number;
+  clipUrl?: string;
   proposedOutcomeIndex?: number;
 }
 

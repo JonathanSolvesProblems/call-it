@@ -1,5 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises";
 import type { FrameSource } from "../frames/frame-source.js";
+import type { MomentRecord } from "../bets/moment-recorder.js";
 import { FrameArchive } from "../frames/frame-archive.js";
 import type { OverlayServer } from "../overlay/server.js";
 import { AgentBrain, functionCalls, resolutionConfirmation, type FunctionCall } from "./brain.js";
@@ -15,9 +16,9 @@ export interface AgentExecutor {
   openBet(action: OpenBetAction, nowMs: number): Promise<void>;
   lockBet(reason: string, nowMs: number): Promise<void>;
   lockBetForResolution(nowMs: number): Promise<void>;
-  resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs: number): Promise<void>;
+  resolveBet(outcomeIndex: number, evidence: string, reason: string, nowMs: number): Promise<MomentRecord | void>;
   restoreBetStatus(status: "open" | "locked", lockedAtMs?: number): Promise<void>;
-  cancelBet(reason: string, nowMs: number): Promise<void>;
+  cancelBet(reason: string, nowMs: number): Promise<MomentRecord | void>;
   checkDeadlines(nowMs: number, maxBetSeconds: number, resolutionPending?: boolean): Promise<"timeout" | "window_end" | null>;
 }
 
@@ -345,7 +346,8 @@ export class AgentLoop {
           }
         } else {
           try {
-            await this.execute(action, this.clock());
+            const moment = await this.execute(action, this.clock());
+            if (moment) args = { ...action.arguments, moment };
           } catch (error) {
             guardResult = `accepted; execution failed: ${errorMessage(error)}`;
           }
@@ -376,7 +378,7 @@ export class AgentLoop {
     }, reason);
   }
 
-  private async execute(action: AgentAction, nowMs: number): Promise<void> {
+  private async execute(action: AgentAction, nowMs: number): Promise<MomentRecord | void> {
     switch (action.tool) {
       case "wait": return;
       case "open_bet": return this.options.executor.openBet(action.arguments, nowMs);
@@ -492,15 +494,17 @@ export class AgentLoop {
         if (confirmedOutcomeIndex !== pending.outcomeIndex) {
           guardResult += `; corrected from ${pending.outcome} to ${confirmedOutcome}`;
         }
+        let recordedMoment: MomentRecord | void = undefined;
         try {
-          await this.options.executor.resolveBet(confirmedOutcomeIndex, pending.evidence, decision.reason, this.clock());
+          const moment = await this.options.executor.resolveBet(confirmedOutcomeIndex, pending.evidence, decision.reason, this.clock());
+          recordedMoment = moment;
         } catch (error) {
           guardResult = `model confirmed; settlement failed: ${errorMessage(error)}`;
         }
         await this.record({
           timestamp: new Date(this.clock()).toISOString(), frameHashes, frameFiles, model: this.resolveModel,
           tool: "confirm_resolution",
-          arguments: { outcome_index: confirmedOutcomeIndex, outcome: confirmedOutcome, evidence: pending.evidence, reason: decision.reason },
+          arguments: { outcome_index: confirmedOutcomeIndex, outcome: confirmedOutcome, evidence: pending.evidence, reason: decision.reason, moment: recordedMoment ?? null },
           guardResult, latencyMs, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0,
         }, decision.reason);
         return;

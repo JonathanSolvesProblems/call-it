@@ -4,6 +4,7 @@ import { ChatBetLedger } from "../bets/chat-ledger.js";
 import { ChatBetService } from "../bets/chat-mode.js";
 import type { ChatBet } from "../bets/chat-ledger.js";
 import type { OverlayServer } from "../overlay/server.js";
+import { FakeMomentRecorder } from "../bets/moment-recorder.js";
 
 export interface ReplayBetRecord {
   question: string;
@@ -21,7 +22,7 @@ export class ReplayBetExecutor implements AgentExecutor {
   private readonly byBet = new Map<string, ReplayBetRecord>();
 
   constructor(overlay: OverlayServer, private readonly vodStartedAtMs: number, private readonly log: (message: string) => void = console.log) {
-    this.service = new ChatBetService(this.ledger, async (message) => this.log(`[fake chat] ${message}`), overlay);
+    this.service = new ChatBetService(this.ledger, async (message) => this.log(`[fake chat] ${message}`), overlay, new FakeMomentRecorder(this.log), () => true);
   }
 
   getAgentBetContext(nowMs: number): { bet: ActiveBetContext | null; lastOpenedAtMs: number | null } { return this.service.getAgentBetContext(nowMs); }

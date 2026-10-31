@@ -69,6 +69,8 @@
     #result.refunded .resultEyebrow { color:#ffc45b; }
     #resultTitle { font-size:34px; font-weight:850; letter-spacing:-.035em; }
     #resultSub { margin-top:8px; color:#b5bbae; font-size:14px; }
+    #clipLink { display:none; margin-top:13px; color:var(--acid); font:800 12px/1 ui-monospace,"Cascadia Code",monospace; letter-spacing:.16em; text-decoration:none; }
+    #clipLink.visible { display:inline-block; }
     #paused {
       display:none; position:absolute; left:72px; bottom:38px; color:#fff; font:700 11px/1 ui-monospace,monospace;
       letter-spacing:.14em; text-transform:uppercase;
@@ -87,7 +89,7 @@
         <h1 id="question" class="question"></h1>
         <div id="outcomes" class="outcomes"></div>
         <div class="foot"><div id="decision" class="decision"></div><div id="timer" class="timer"></div></div>
-        <div id="result"><div id="resultEyebrow" class="resultEyebrow">WINNER</div><div id="resultTitle"></div><div id="resultSub">The call is in.</div></div>
+        <div id="result"><div id="resultEyebrow" class="resultEyebrow">WINNER</div><div id="resultTitle"></div><div id="resultSub">The call is in.</div><a id="clipLink" target="_blank" rel="noopener noreferrer">CLIPPED ↗</a></div>
       </div></div>
     </section>
     <div id="paused"><span>Ⅱ</span><b id="pausedText">PAUSED</b></div>
@@ -136,11 +138,15 @@
         text(document.querySelector('#resultTitle'), winner ? winner.title : 'Prediction resolved');
         const bettorCount = bet.outcomes.reduce((sum, item) => sum + item.bettors, 0);
         text(document.querySelector('#resultSub'), bettorCount === 0 ? 'No one bet on this one.' : 'Call It saw the moment.');
+        const clipLink = document.querySelector('#clipLink');
+        clipLink.href = bet.clipUrl || '';
+        clipLink.classList.toggle('visible', Boolean(bet.clipUrl));
         result.classList.remove('refunded'); result.classList.add('shown');
       } else if (bet.status === 'refunded') {
         text(document.querySelector('#resultEyebrow'), 'REFUNDED');
         text(document.querySelector('#resultTitle'), 'Points returned');
         text(document.querySelector('#resultSub'), 'The moment was unclear, so nobody loses.');
+        document.querySelector('#clipLink').classList.remove('visible');
         result.classList.add('refunded', 'shown');
       }
     }

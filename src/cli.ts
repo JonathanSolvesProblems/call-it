@@ -10,6 +10,7 @@ import { OverlayServer } from "./overlay/server.js";
 import { TwitchAuth } from "./twitch/auth.js";
 import { EventSubClient } from "./twitch/eventsub.js";
 import { HelixClient } from "./twitch/helix.js";
+import { TwitchMomentRecorder } from "./twitch/moment-recorder.js";
 import { runReplay } from "./replay/run.js";
 import { ModelCallReporter, positiveLimit, scheduleForceLiveLimit } from "./agent/spend-limits.js";
 
@@ -44,7 +45,8 @@ async function live(): Promise<void> {
   const modelUsage = new ModelCallReporter((message) => console.log(message));
   if (mode === "chat") {
     ledger = await ChatBetLedger.open(join(process.cwd(), "data", "ledger", `${broadcaster.id}.json`));
-    chatBets = new ChatBetService(ledger, sendChat, overlay);
+    const moments = new TwitchMomentRecorder(helix, broadcaster.id, sendChat, () => streamLive);
+    chatBets = new ChatBetService(ledger, sendChat, overlay, moments, () => streamLive);
     const decisions = new DecisionLog();
     await decisions.loadRecent();
     agent = new AgentLoop({

@@ -64,7 +64,7 @@ describe("agent loop tool validation", () => {
           activeBet.lockedAtMs = atMs;
         }
       }),
-      resolveBet: vi.fn(async () => { activeBet = null; }),
+      resolveBet: vi.fn(async () => { activeBet = null; return { clipId: "clip-1", clipUrl: "https://clips.twitch.tv/clip-1", markerPositionSeconds: 88 }; }),
       restoreBetStatus: vi.fn(async (status, lockedAtMs) => {
         if (activeBet) {
           activeBet.status = status;
@@ -115,9 +115,10 @@ describe("agent loop tool validation", () => {
     expect(executor.lockBet).not.toHaveBeenCalled();
     expect(executor.restoreBetStatus).toHaveBeenCalledTimes(settles ? 0 : 1);
     if (!settles) expect(executor.restoreBetStatus).toHaveBeenCalledWith("open", undefined);
-    const entries = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string; arguments: { evidence?: string }; guardResult: string });
+    const entries = (await readFile(decisions.filePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { tool: string; arguments: { evidence?: string; moment?: unknown }; guardResult: string });
     expect(entries[0]).toMatchObject({ tool: "resolve_bet", arguments: { evidence: "Glass-Backed Tide Wisp shows 0 HP in the newest frame." }, guardResult: "accepted: pending second-look confirmation" });
     expect(entries[1]?.tool).toBe(confirmationTool);
+    if (settles) expect(entries[1]?.arguments.moment).toEqual({ clipId: "clip-1", clipUrl: "https://clips.twitch.tv/clip-1", markerPositionSeconds: 88 });
     if (!settles) expect(overlay.getState().bet?.status).toBe("open");
   });
 

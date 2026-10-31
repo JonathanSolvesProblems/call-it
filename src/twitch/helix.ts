@@ -13,6 +13,9 @@ export interface TwitchStream {
   type: string;
 }
 
+export interface TwitchClip { id: string; edit_url: string }
+export interface TwitchStreamMarker { id: string; position_seconds: number; description: string }
+
 export class HelixClient {
   private token?: TwitchToken;
 
@@ -34,6 +37,21 @@ export class HelixClient {
       body: JSON.stringify({ broadcaster_id: broadcasterId, sender_id: senderId, message }),
     });
     return response.data[0]?.message_id;
+  }
+
+  async createClip(broadcasterId: string): Promise<TwitchClip | undefined> {
+    // Requires user access token scope clips:edit.
+    const response = await this.request<{ data: TwitchClip[] }>(`/clips?broadcaster_id=${encodeURIComponent(broadcasterId)}`, { method: "POST" });
+    return response.data[0];
+  }
+
+  async createStreamMarker(userId: string, description: string): Promise<TwitchStreamMarker | undefined> {
+    // Requires user access token scope channel:manage:broadcast.
+    const response = await this.request<{ data: TwitchStreamMarker[] }>("/streams/markers", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, description: description.slice(0, 140) }),
+    });
+    return response.data[0];
   }
 
   async createEventSubSubscription(type: string, condition: Record<string, string>, sessionId: string): Promise<void> {
