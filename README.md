@@ -6,7 +6,8 @@ Call It watches your game through OBS and runs prediction bets in your Twitch ch
 
 ## Demo
 
-- Demo video: added on submission day (YouTube).
+- Demo video: [youtube.com/watch?v=IGjhYXjgPrY](https://www.youtube.com/watch?v=IGjhYXjgPrY)
+- Write-up: [Call It: an AI runs Twitch Predictions](https://jonathanandrei.com/blog/call-it-ai-runs-twitch-predictions-codex/)
 - The live stream it was filmed on, with chat replay: [twitch.tv/videos/2916119628](https://www.twitch.tv/videos/2916119628) (my demo channel, jonathansolvesproblems; the viewer betting is my main account).
 - A clip Call It made by itself at a payout: [The Bellows](https://clips.twitch.tv/SoftSpeedyPassionfruitPunchTrees-mnfpV8CfdPDOgDs2).
 

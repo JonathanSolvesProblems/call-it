@@ -56,7 +56,8 @@ typescript, nodejs, openai, codex, twitch-api, eventsub, obs-websocket, vitest, 
 
 ```
 Repository: https://github.com/JonathanSolvesProblems/call-it
-Demo video: <youtube url>
+Demo video: https://www.youtube.com/watch?v=IGjhYXjgPrY
+Write-up: https://jonathanandrei.com/blog/call-it-ai-runs-twitch-predictions-codex/
 Live VOD (Twitch): https://www.twitch.tv/videos/2916119628
 Clip Call It made: https://clips.twitch.tv/SoftSpeedyPassionfruitPunchTrees-mnfpV8CfdPDOgDs2
 ```
@@ -64,8 +65,10 @@ Clip Call It made: https://clips.twitch.tv/SoftSpeedyPassionfruitPunchTrees-mnfp
 ## YouTube title
 
 ```
-Call It: an AI agent runs Twitch predictions while you play (Codex x TwitchCon Hackathon)
+An AI runs my Twitch Predictions, no Affiliate needed | Call It (Codex x TwitchCon Hackathon)
 ```
+
+Thumbnail: `broll/thumbs/thumbnail-long.jpg` (1920x1080).
 
 ## YouTube description
 
@@ -88,6 +91,12 @@ Live VOD: https://www.twitch.tv/videos/2916119628
 2:10 Setup
 2:17 Call it
 2:21 Bonus: from the stream
+```
+
+## YouTube tags
+
+```
+twitch, ai, openai, codex, twitch predictions, twitch affiliate, channel points predictions, ai agent, computer vision, obs, twitch chat bot, twitch eventsub, hackathon, devpost, twitchcon, call it, chess.com, jonathansolvesproblems
 ```
 
 ## Image gallery
