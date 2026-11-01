@@ -84,10 +84,10 @@ Live VOD: https://www.twitch.tv/videos/2916119628
 0:56 The second look, payout, clip
 1:12 When it can't see the result, it refunds
 1:24 Graded against chess.com
-1:46 Built with Codex
+1:45 Built with Codex
 2:10 Setup
 2:17 Call it
-2:22 Bonus: from the stream
+2:21 Bonus: from the stream
 ```
 
 ## Image gallery
